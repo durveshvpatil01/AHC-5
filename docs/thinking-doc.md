@@ -1,35 +1,56 @@
-# Account Desk: Thinking doc
-*Durvesh Patil · Account Quest build · one page*
+# Account Desk — Thinking Doc
 
-## What it does, and for whom
-**For:** the CSM who inherits Eastern Counties Police Alliance (A) and Aldermoor Industrial Group (B) on a Monday, and the manager they report to.
-**What:** a live CRM that answers five questions per account, citing the id behind every number:
-1. **Book:** what each deal is worth *and what backs it*. The renewals (£350,000 for A, €140,000 for B) are backed by the contract. "Claims" (the 300-dock tender, the 30-dock stadium, the €1.2M saving) are shown apart and never totalled.
-2. **Power:** for each deal, who decides, pays, signs, uses, could block and champions it, with their stance. Seats held by people nobody has met are marked **UNKNOWN**: on A, 9 seats; on B, 7.
-3. **First moves:** ranked, each with an owner, a due date inside its deadline, the deal it moves and its evidence. One click saves a move into the game (`write_note`).
-4. **About to go wrong:** a red/amber radar with the date each risk turns bad.
-5. **Still unknown:** the gaps the plan rests on, and who can fill each one.
+## 1. What It Does and For Whom
+**Account Desk** is a live Customer Success CRM built for a FlytBase CS Manager opening their desk on Monday at 9:00 AM. It covers two enterprise accounts—**Account A (Eastern Counties Police Alliance, GBP)** and **Account B (Aldermoor Industrial Group, EUR)**—and answers the five questions that determine whether a renewal closes cleanly:
+1. **What is the book worth?** Separates contract-backed value from unverified claims and verbal estimates (`backed` vs `told` vs `claim`).
+2. **Who holds the power?** Maps every deal's buying committee (`decides`, `pays`, `signs`, `uses`, `could block`, `champions`), their stance, and any `UNKNOWN` unmet seats.
+3. **What do we do first?** Ranks concrete next moves with an owner, due date, deal impacted, and one-click write-back (`write_note`) to the game.
+4. **What is about to go wrong?** Surfaces red/amber risks sorted by severity and when each turns bad.
+5. **What do we still not know?** Lists the blind spots the plan rests on and who can answer each one.
 
-It also covers **fleet health** (each dock: active, low, stopped or never flown, from usage, flights and device events) and a **timeline** of every call, email, ticket and live event.
+Every number, status, and claim on screen carries a clickable `<Cite>` chip that opens the raw MCP source record (`contract.txt`, `usage_weekly.csv`, call transcripts, tickets, or live signals).
 
-## How it decides: the rules (all in `src/lib/engine.ts`, each tagged on screen)
-- **Backed vs claim:** a value counts only if a contract, invoice or usage file supports it. Value per dock = annual value ÷ docks (contract). A fact with `status: claim` never enters a total; it becomes a gap to verify.
-- **Fleet:** *active* = ≥ 4 flights in 4 weeks; *low* = 1-3; *stopped* = 0 now but flew before; *never*. **R-DROP:** a busy dock (≥ 3/week) silent for 2 weeks.
-- **Risks:** R-USAGE (≥ 15% of docks idle; red ≥ 25%) · R-OPEN (an open request with no owner; red if urgent or older than 30 days) · R-THREAD/R-CHAMP (single-threaded; the only contact leaving) · R-RENEWAL (< 120 days to term end, not qualified) · R-CLAIM · R-COLD · R-CONN · R-BATT · R-DEADLINE.
-- **Moves:** `score = stake × confidence ÷ (days left + 1)`. The stake is the renewal value the move protects. Urgency dominates, so a reply due tomorrow beats a bigger move due next week.
-- **Health:** 50% usage + 25% relationships (guarded 25 → ally 100) + 25% support (−25 for each unowned open request). Every part is shown.
-- **Live:** live events (`get_signals`) are **merged into the paperwork**: new usage rows change the fleet, and a new ticket becomes a risk and a move. The browser checks every 30 s and re-renders on change. Server caches are staggered (signals 60 s, export 7 min, notes 5 min) to stay under one call a minute. If a call fails, the page falls back to the stored snapshot.
+---
 
-## What it found (Monday 9am)
-- **A:** 17 of 35 docks active; 7 have never flown; Tarn Valley has flown nothing since May ("awaiting sign-off"), and an unanswered document request (FB-10412) has been open since June. Rhys, the only contact, leaves in January. **First move:** reply to Karen, the account's only ally, in writing before her 5 Dec event (FB-11206). That also delivers the two offers won in the morning.
-- **B:** 4 of 14 docks active, against "13 of 15 plants flying". AD-02, AD-05 and AD-10 stopped two weeks ago while still online. Finance asked for cost per plant in October and nobody replied. **First move:** find out why the busiest docks stopped, before finance sees a per-plant quote.
+## 2. How It Decides (Rules & Scoring in `src/lib/engine.ts`)
 
-## What it does not do yet
-- No dock-to-site map: the install sheets aren't in the data, so idle docks can't be named by force or plant (this is listed as a gap, with who holds the sheets).
-- The power-map seats and move templates are written as rules over named records, not learned. A brand-new kind of event gets a generic risk and timeline entry, but no tailored move.
-- No currency conversion: GBP and EUR are never summed.
-- No auth, so it's single-user, and no history of how the scores changed over time.
+### Health Score (0–100)
+`health = 0.50 × usage + 0.25 × relationships + 0.25 × support`
+- **Usage (50%)**: percentage of installed docks that flew ≥ 4 times in the last 4 weeks (`active / total docks × 100`).
+- **Relationships (25%)**: average stance score across met stakeholders (`guarded = 25`, `neutral = 55`, `warm = 80`, `ally = 100`).
+- **Support (25%)**: starts at 100 and subtracts 25 points for each open, unowned support/document request.
 
-## How I used AI
-- **Claude Code** (desktop): it read the build brief and the data schema, pulled the data under the rate limit, wrote the analytics and rules engine, built the UI, and checked that every cited id exists (`scripts/engine-check.ts`). **Antigravity** worked in parallel on the doc and script. A shared `memory/` folder kept both agents and fresh chats in sync.
-- I made the calls: what counts as "backed", the thresholds, what a good first move is, and how it reads to a manager. I questioned every number the AI put on screen until I could trace it to a record.
+### Move Ranking (`R-MOVE`)
+Every candidate action is scored by:
+`score = (stake × confidence) ÷ (daysLeft + 1)`
+- **Stake**: the contract or at-risk dock value in the account's native currency (no cross-currency summing).
+- **Confidence**: probability that the move unblocks or protects the stake (0.20–0.90).
+- **Urgency (`daysLeft + 1`)**: days remaining until the hard deadline or due date.
+
+### Risk & Gap Rules (`R-xx`)
+- **`R-USAGE`**: Fires when ≥ 15% of docks had zero flights in the last 4 weeks (**red** if ≥ 25%). Turns bad 90 days before term end.
+- **`R-DROP`**: **Red** risk when a previously busy dock (≥ 3 flights/week) stops flying for 2 weeks or drops to ≤ 25% of its prior 4-week volume.
+- **`R-OPEN`**: Flags open requests with no owner (**red** if marked urgent or open > 30 days).
+- **`R-THREAD`**: Flags single-threaded accounts (**red** if the sole contact is leaving before renewal; **amber** if one contact attended every call).
+- **`R-COLD`**: **Amber** risk when a met stakeholder on a live deal has a `guarded` stance.
+- **`R-DEADLINE`**: **Amber** risk for any active game deadline that has not passed yet but lacks an exact date on file.
+- **`R-RENEWAL`**: Fires when < 120 days remain to term end and the renewal deal is not yet qualified (**red** if < 75 days).
+- **`R-CLAIM`**: **Amber** risk when the official account story rests on an unverified `claim` fact.
+- **`R-CONN`**: **Amber** risk when a dock logs ≥ 10 connection drops in 8 weeks.
+- **`R-BATT`**: **Amber** risk when a dock logs ≥ 5 battery health warnings.
+- **`R-GAP-*`**: Surfaces blind spots from missing profile records (`R-GAP-FILE`), unverified claims (`R-GAP-CLAIM`), unqualified deals without worth (`R-GAP-WORTH`), undated deadlines (`R-GAP-DATE`), and correlated open items (`R-GAP-LINK`, e.g., `FB-10412` and Tarn Valley).
+
+---
+
+## 3. What It Does Not Do Yet
+- **No cross-account currency conversion**: GBP and EUR books are intentionally kept separate rather than rolled into a synthetic total.
+- **No automated outbound messaging**: Drafts and next steps are written back to the game via `write_note`, not sent directly to customer email/Slack.
+- **Polling instead of push**: Uses a 30-second `/api/live` fingerprint check backed by staggered server caches (`60s` signals, `300s` notes, `420s` export) to respect the 1-call/minute token limit.
+- **No automatic claim verification**: Unbacked claims remain quarantined until a human attaches a file or confirms with the named owner.
+
+---
+
+## 4. How AI Was Used
+- **Claude Code**: Built the MCP snapshot ingestion, server-side caching (`src/lib/aq.ts`), API routes (`/api/live`, `/api/notes`), and deterministic rule engine (`src/lib/engine.ts`).
+- **Antigravity**: Designed and polished the FlytBase-inspired dark console UI (`src/components/*`, `src/app/globals.css`), including the 5-question hero strip, per-deal power map, fleet SVG chart, risk radar, and citation drawer.
+- **Human (Durvesh)**: Conducted the morning discovery in Account Quest, validated edge cases, verified live write-back, and owns the Monday 9am CS judgement calls.

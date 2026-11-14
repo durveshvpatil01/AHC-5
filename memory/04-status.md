@@ -18,16 +18,19 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - [x] UI: portfolio + account pages (5 answers strip, tabs, fleet table, timeline, notes, citation drawer). No hydration errors.
 
 ## Next
-- [ ] Public GitHub repo + push (Durvesh: create the repo; git push uses Git Credential Manager)
+- [x] Public GitHub repo: https://github.com/durveshvpatil01/AHC-5 (pushed main, commit ccbaa27)
 - [ ] Vercel: import the repo, set the `AQ_TOKEN` env var, deploy, check in a private window
 - [ ] Test write_note once on the deployed app
-- [ ] Thinking doc (Google Doc) from `docs/thinking-doc.md`
-- [ ] Video (3 min): the five answers for A; trace £180,000 → usage_weekly.csv / ECPA docks; a live event arriving; the code
+- [x] Thinking doc (Google Doc) draft ready in `docs/thinking-doc.md`
+- [x] Video script (3 min) ready in `docs/video-script.md`
 - [ ] Hand in the 4 links on /play → Hand in
 
 ## Key numbers (for the video and the doc)
 - A: £350,000 renewal (A:contract.txt) ends 28 Feb 2027; 17/35 docks active, 7 never flew, 10 stopped; health 47. Top move: reply to Karen before the 5 Dec event (urgent_request, FB-11206).
 - B: €140,000 renewal (B:contract.txt) ends 31 Jan 2027; 4/14 docks active; AD-02, AD-05 and AD-10 stopped in the last 2 weeks (usage_drop); health 33. Top move: find out why those docks stopped.
+
+## Progress log
+- Antigravity 14 Nov 13:36 IST: Polished UI across `src/components/ui.tsx`, `src/components/Desk.tsx`, `src/components/Portfolio.tsx`, `src/components/Account.tsx`, and `src/app/globals.css` (AnswerBanner on Q1–Q5 tabs, ShowAllToggle top-3 defaults, Power map with UNKNOWN red dashed seats, Fleet stacked bar + 12-week SVG chart + flagged dock pills, Risk radar red→amber sorting + overdue highlight, Live/Snapshot header pill + new-signal highlighting, 390px responsiveness + `:focus-visible`, Esc-to-close Cite drawer). Created `docs/thinking-doc.md` and `docs/video-script.md`. Verified `npm run build` (0 errors in UI files; 2 unused-var warnings in `src/lib/engine.ts`) and `http://localhost:3001` (HTTP 200). Next: Durvesh to review UI on `http://localhost:3001` and copy `docs/thinking-doc.md` / record `docs/video-script.md`.
 
 ## Notes from 14 Nov ~14:30
 - write_note tested: OK, note id 143035 (account A, next_step, the Karen reply). Response shape: {id, created_at, account, kind, title, text, source}.
