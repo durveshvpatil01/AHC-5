@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getCrm } from "@/lib/load";
 import { COPILOT_MODEL, COPILOT_RULES, buildContext } from "@/lib/copilot";
+import { clientIp, limit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,15 +16,21 @@ export async function POST(req: Request) {
   if (!apiKey) {
     return Response.json({ error: "The Copilot is not configured: set COPILOT_ANTHROPIC_KEY on the server." }, { status: 503 });
   }
+  const rl = limit(`copilot:${clientIp(req)}`, 12, 10 * 60_000);
+  if (!rl.ok) return Response.json({ error: `Too many questions. Try again in ${rl.retryAfterSec}s.` }, { status: 429, headers: { "retry-after": String(rl.retryAfterSec) } });
   let body: { question?: string; history?: Turn[]; account?: string };
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: "Bad JSON" }, { status: 400 });
   }
-  const question = (body.question ?? "").toString().trim().slice(0, 2000);
+  const question = (body.question ?? "").toString().trim();
+  if (question.length > 1000) return Response.json({ error: "Question too long (max 1,000 characters)." }, { status: 400 });
   if (!question) return Response.json({ error: "Ask a question." }, { status: 400 });
-  const history = (body.history ?? []).filter((t) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string" && t.content.trim()).slice(-8);
+  const history = (Array.isArray(body.history) ? body.history : [])
+    .filter((t) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string" && t.content.trim())
+    .slice(-6)
+    .map((t) => ({ role: t.role, content: t.content.slice(0, 4000) }));
   const focus = body.account && /^[A-Z]$/.test(body.account) ? `\n\n(The user is looking at account ${body.account}.)` : "";
 
   // Uses whatever the portal's MCP connection holds now; no extra MCP call.

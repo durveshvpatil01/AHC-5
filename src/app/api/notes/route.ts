@@ -1,11 +1,14 @@
 // Write a note / task / risk / next_step back to the game through the portal's MCP connection (write_note).
 import { guardedCall, noteWritten, reserveForWrite, secondsUntilNextCall } from "@/lib/sync";
+import { clientIp, limit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
 const KINDS = new Set(["note", "task", "risk", "next_step"]);
 
 export async function POST(req: Request) {
+  const rl = limit(`notes:${clientIp(req)}`, 8, 10 * 60_000);
+  if (!rl.ok) return Response.json({ ok: false, waitSec: rl.retryAfterSec, error: `Too many notes. Try again in ${rl.retryAfterSec}s.` }, { status: 429, headers: { "retry-after": String(rl.retryAfterSec) } });
   let body: { account?: string; kind?: string; title?: string; text?: string };
   try {
     body = await req.json();
