@@ -3,7 +3,7 @@
 // palette, keyboard shortcuts, and the outbox that writes every change back to the game.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { Building2, FileText, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
+import { Bot, Building2, FileText, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
 import type { CrmView } from "@/lib/types";
 import type { SyncStatus } from "@/lib/sync";
 import { CiteProvider, fmtDate } from "./ui";
@@ -14,6 +14,7 @@ import { ActionQueue } from "./ActionQueue";
 import { RiskRadar } from "./RiskRadar";
 import { ChangeLog } from "./ChangeLog";
 import { Brief } from "./Brief";
+import { Copilot } from "./Copilot";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { OpsProvider, OutboxChip, useOps } from "./ops";
 
@@ -62,6 +63,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
     { id: "queue", label: "Action queue", icon: ListChecks, key: "q", badge: openMoves.length, badgeCls: overdue ? "bg-[var(--red-soft)] text-red" : undefined },
     { id: "risks", label: "Risk radar", icon: ShieldAlert, key: "r", badge: reds, badgeCls: "bg-[var(--red-soft)] text-red" },
     ...crm.accounts.map((a, i) => ({ id: a.id, label: shortName(a.name), icon: Building2, key: String(i + 1), badge: a.kpis.health.score, badgeCls: a.kpis.health.score < 40 ? "bg-[var(--red-soft)] text-red" : a.kpis.health.score < 65 ? "bg-[var(--amber-soft)] text-amber" : "bg-[var(--green-soft)] text-green", group: i === 0 ? "Accounts" : undefined })),
+    { id: "copilot", label: "AI Copilot", icon: Bot, key: "c", group: "Assist" },
     { id: "log", label: "Change log", icon: History, key: "l", badge: sync.changes.length || undefined, group: "Live" },
     { id: "brief", label: "Monday brief", icon: FileText, key: "b" },
   ];
@@ -86,6 +88,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
   });
 
   const actions: PaletteItem[] = [
+    { id: "a-ask", group: "Actions", label: "Ask the AI Copilot", hint: "key c", run: () => setView("copilot") },
     { id: "a-sync", group: "Actions", label: "Sync live events now (get_signals)", hint: "key s", run: onSync },
     { id: "a-mcp", group: "Actions", label: "Open the MCP connection panel", hint: "key m", run: () => setPanel(true) },
     { id: "a-print", group: "Actions", label: "Print the Monday brief", run: () => { setView("brief"); setTimeout(() => window.print(), 300); } },
@@ -186,8 +189,9 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           {view === "risks" && <RiskRadar crm={crm} go={go} />}
           {view === "log" && <ChangeLog crm={crm} sync={sync} />}
           {view === "brief" && <Brief crm={crm} />}
+          {view === "copilot" && <Copilot crm={crm} />}
           {current && <Account key={current.id} acc={current} crm={crm} />}
-          {!["P", "queue", "risks", "log", "brief"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
+          {!["P", "queue", "risks", "log", "brief", "copilot"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
         </main>
         <footer className="px-6 pb-8 pt-2 text-[11px] text-dim print:hidden">
           Every number carries the id it comes from: click any <span className="mono text-muted">▤ id</span> chip to open the record. Data: the portal&apos;s own MCP connection to Account Quest · Ctrl+K to search · ? for shortcuts.

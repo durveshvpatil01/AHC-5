@@ -19,6 +19,12 @@ It also has a **fleet health** view per dock, computed from weekly usage, flight
 - Write-back: **Save to game** on a move, or the Notes tab → `write_note` through the same connection.
 - `data/snapshot/` is only a cold-start fallback until each source's first live pull.
 
+## AI Copilot
+- `/api/copilot` streams an answer from Claude (`claude-opus-5-5`, Anthropic SDK), grounded on the live CRM view and every source record (`src/lib/copilot.ts`). The context is prompt-cached and only changes when the data version changes.
+- Rules for the model: answer only from the data, cite each fact with its `[id]`, never invent ids or people, keep GBP and EUR apart, and say what's missing and who could tell us.
+- The browser checks every cited id against the CRM sources: known ids become clickable chips, and unknown ones are flagged red.
+- Server-side fallback on refusals (`fallbacks: "default"`). The key is server-side only: `COPILOT_ANTHROPIC_KEY`.
+
 ## How it decides (rules)
 Every rule is pure code in `src/lib/engine.ts`, and each rule's id is shown next to what it produced:
 - **Book:** a value is *backed* only when a contract, invoice or usage file supports it. The value per dock is derived as `annual value ÷ docks` from the contract. Claims (`status: claim`) never count toward a total.
@@ -33,7 +39,7 @@ Every rule is pure code in `src/lib/engine.ts`, and each rule's id is shown next
 ## Run it
 ```bash
 npm install
-cp .env.example .env.local   # put your AQ_TOKEN in it (never commit it)
+cp .env.example .env.local   # put AQ_TOKEN (and COPILOT_ANTHROPIC_KEY for the AI Copilot) in it; never commit it
 node scripts/snapshot-rest.mjs   # optional: refresh the snapshot (one call a minute)
 npm run dev
 ```
