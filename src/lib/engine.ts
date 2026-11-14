@@ -466,6 +466,7 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
   const unbackedCount = deals.filter((d) => d.value.basis === "claim" || d.value.amount == null).length;
   const dataStory = n === 0 ? "No usage data on file for this account yet: everything below comes from the export and live events." : A === "A"
     ? `${active} of ${n} docks fly regularly; ${count("never")} have never flown and ${count("dormant")} have stopped. Only Westmere and Metro Central fly operationally.`
+    : A !== "B" ? `${active} of ${n} docks fly regularly; ${count("never")} never flew and ${count("dormant")} stopped.`
     : `${active} of ${n} docks fly regularly (not "13 of 15 plants"); ${count("never")} never flew, and the busiest docks ${dropped.length ? `include ${dropped.length} that just stopped` : "carry the fleet"}.`;
   const unknownSeats = deals.filter((d) => d.kind !== "offer").flatMap((d) => d.seats).filter((s) => !s.met).length;
   const answers = {
@@ -478,7 +479,7 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
 
   return {
     id: A, name: a.name, sector: prof.sector, currency: cur, officialStory: a.official_story, dataStory,
-    dataStoryCite: [...usageCite, ...(A === "A" ? ["rc_appetite_2", "flight_log_force_month"] : ["sr_roll_0"])],
+    dataStoryCite: [...usageCite, ...(A === "A" ? ["rc_appetite_2", "flight_log_force_month"] : A === "B" ? ["sr_roll_0"] : [])],
     kpis, deals, people, moves, risks, gaps, fleet: docks, weeks: fleet.weeks.slice(-12), timeline: timelineOf(pack, signals),
     signals: signals.map((s) => toSignal(s, [...impactOf(s.id, A), ...(deltas[s.id] ?? [])])), answers,
     discovery: discoveryOf(a, deals, docks, prof, S, people.filter((p) => !p.met).length),

@@ -56,3 +56,23 @@ Workspace pages:
 - Antigravity built UI polish, puzzle-piece rules/tests, API rate limiting (`src/lib/ratelimit.ts`), and hand-in documentation, coordinating with Claude Code through a shared `memory/` folder.
 - AI Copilot runs Claude Opus 5.5 (`claude-opus-5-5`) over prompt-cached CRM state with every `[id]` citation verified client-side.
 - Human (Durvesh) played the morning discovery in Account Quest, uncovered the operational ground truth, and owns the CS decisions.
+
+## (e) How it fits together (simple view)
+
+```
+ Account Quest game ──(MCP: one secure call a minute)──►  Account Desk server
+   accounts, people, calls,                                  1. Live sync: pulls new data by itself
+   usage, tickets, live events                               2. Rules engine: turns raw data into
+                                                                answers, risks, moves and plans
+                                                             3. AI Copilot (Claude): answers questions,
+                                                                citing the record behind every fact
+                                                                        │
+                                                                        ▼
+                                                   The CRM screens a CSM uses on Monday:
+                                   Portfolio · Accounts (5 answers) · Action queue · Account plan ·
+                                   Playbook · Notebook · Discovery · Copilot · Cockpit · Monday brief
+                                                                        │
+                                          notes, tasks and lessons written back to the game ◄┘
+```
+
+In one line: the game is the source of truth, the CRM reads it live, turns it into a clean plan with a source for every number, and writes our decisions back.

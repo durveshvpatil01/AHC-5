@@ -80,3 +80,4 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - 16:04 Antigravity: T4 done — updated `docs/thinking-doc.md` and `docs/video-script.md`; passed `tsc`, `eslint`, `vitest` (24/24), and `NEXT_DIST_DIR=.next-build npx next build`.
 
 FROZEN at 16:05 IST
+- 17:25 Claude: H and K integrated (load.ts merge, blocker normalise, file texts, generic plays/moves). 0 missing cites A/B/H/K. 24 tests pass.
