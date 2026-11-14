@@ -43,3 +43,12 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - Browser: `LiveDesk` polls `/api/crm?v=` every 20 s and swaps data in place. The header pill "MCP live" opens `McpPanel` (sources, call log, Sync now). `/api/sync` forces get_signals. `/api/live` was removed.
 - Engine: an unknown live event → R-SIGNAL risk + R-MOVE-SIGNAL move + Δ before/after lines; a new account (no contract) → stub view + an R-MOVE-NEW intro move. Tested with `npx tsx scripts/sim-check.ts`.
 - Only ONE process should run with the token at a time (local dev OR Vercel), or they starve each other.
+
+## 14 Nov ~16:00: CRM workspace features (commit b41afdb+)
+- At 08:32 UTC the MCP started returning 0 live events (reset for the build phase); `get_my_accounts` changed too. The portal shows this correctly; new events will arrive at random times.
+- Shell (`Desk.tsx`): left rail (Portfolio, Action queue, Risk radar, accounts, Change log, Monday brief), MCP status, Ctrl+K palette (`CommandPalette.tsx`), keys p/q/r/1-9/l/b/s/m/?.
+- `ops.tsx`: outbox. Done/Snooze/Reassign/Due are written as notes titled `task:<moveId>` with text `status=..; owner=..; due=..` (write_note), and read back via list_notes → `applyTaskNotes` in the engine. The server reserves the next MCP slot for a waiting write (`reserveForWrite`).
+- `drafts.ts`: a draft per move (tailored + generic), with Copy, "Save draft to game" and "Mark sent + done" in a drawer.
+- `ChangeLog.tsx` (sync.changes diffs + signal impacts + call log), `RiskRadar.tsx`, `Brief.tsx` (printable).
+- Dev servers: Claude uses `npm run dev:claude` (port 3101, distDir .next-claude); Antigravity keeps .next. Never run two servers on one distDir.
+- Not done yet: Vercel deploy (Durvesh), Thinking doc → Google Doc, video, hand-in.
