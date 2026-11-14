@@ -1,0 +1,225 @@
+ACCOUNT DESK - 5 MINUTE PRESENTATION SCRIPT
+(read from phone, show CRM on laptop)
+
+LINK: https://account-desk-crm.onrender.com
+Open it 1 minute early. Wait for the green
+"MCP live" pill at the top.
+
+KEYS: x = Cockpit   p = Portfolio
+      1 = Eastern Counties
+      a = Account plan   y = Playbook
+      l = Change log   c = AI Copilot
+      Esc = close
+
+==================================
+1. OPENING  (0:00 - 0:30)
+==================================
+SHOW: Cockpit  -> press x
+
+SAY:
+"Hi everyone. This is Account Desk,
+the CRM I built for the accounts
+I took over from Sam.
+
+I got a police alliance and an
+industrial group. Two more accounts
+arrived during the build.
+
+On paper all of them looked fine.
+This tool shows what is really
+going on, and what to do next.
+
+This is cockpit mode: health of
+each account, renewal countdowns,
+next actions on the clock, red
+risks, and a live feed of data
+coming in."
+
+DO: press Esc
+
+==================================
+2. PORTFOLIO  (0:30 - 1:00)
+==================================
+SHOW: Portfolio  -> press p
+
+SAY:
+"This is the Monday morning view.
+
+Each account shows its health
+score, renewal value and days left.
+
+Two lines on each card:
+what the account sheet SAYS,
+and what the data SHOWS.
+
+Example: the police alliance says
+the rollout is going well. The data
+says only 17 of 35 docks really fly.
+
+Below is this week's priority list
+for all accounts."
+
+==================================
+3. FIVE QUESTIONS  (1:00 - 2:30)
+==================================
+SHOW: Eastern Counties -> press 1
+
+SAY:
+"Every account answers the same
+five questions a manager asks."
+
+DO: click  1 . Book
+SAY:
+"ONE - What is it worth?
+Renewal is 350,000 pounds, backed
+by the contract.
+But 180,000 of it pays for docks
+that hardly fly.
+Things like the 300-dock tender are
+only claims, so I keep them separate
+and never add them to the total."
+
+DO: click  2 . Power
+SAY:
+"TWO - Who holds the power?
+For each deal: who decides, who
+pays, who uses it, who can block.
+Red boxes = people we never met.
+Our main contact Rhys is leaving in
+January. That is a risk."
+
+DO: click  3 . First moves
+SAY:
+"THREE - What do I do first?
+Ranked actions, each with an owner,
+a due date and a ready draft message.
+Number one: reply to Inspector Karen
+before her 5th December event."
+
+DO: click  4 . About to go wrong
+SAY:
+"FOUR - What can go wrong?
+Every risk has a colour and the
+date it turns bad."
+
+DO: click  5 . Unknowns
+SAY:
+"FIVE - What we still don't know,
+and who can tell us.
+I show gaps honestly, no guessing."
+
+==================================
+4. NUMBERS HAVE SOURCES (2:30 - 3:00)
+==================================
+SHOW: still Eastern Counties, tab 1
+
+DO: click the small "contract.txt"
+    tag under 350,000
+
+SAY:
+"Nothing here is typed by hand.
+Every number has a small tag.
+Click it and you see the original
+record. This is the contract:
+350,000 a year for 35 docks."
+
+DO: press Esc
+
+==================================
+5. IT STAYS LIVE  (3:00 - 3:45)
+==================================
+DO: click the green "MCP live" pill
+SAY:
+"The CRM pulls data by itself from
+the game every minute through the
+MCP connection."
+
+DO: press Esc, then press l
+    (Change log)
+SAY:
+"When new data came in this
+afternoon, it updated with no code
+change.
+Example: 3 busy docks at Aldermoor
+suddenly stopped flying.
+The CRM caught it, raised a red risk
+and made it the number one action."
+
+DO: point at Brindle Harbour and
+    Kestrel in the left menu
+SAY:
+"Two brand new accounts, Brindle
+Harbour and Kestrel, also appeared
+on their own."
+
+==================================
+6. THE PLAN  (3:45 - 4:30)
+==================================
+SHOW: Account plan -> press a
+DO: scroll down to "Unlock map"
+
+SAY:
+"This is the plan I would present.
+Each line shows what unlocks what.
+
+Tarn Valley: their docks never flew
+because they are waiting for a
+document.
+Deliver the document -> they fly ->
+we prove value -> THEN we ask about
+more docks or a stadium.
+
+Fix first. Prove second.
+Grow third."
+
+SHOW: Playbook -> press y
+SAY:
+"This is the Playbook: mistakes we
+made and will not repeat. For
+example, never pitch more docks
+while the current ones sit idle.
+It is also a checklist for the next
+account we onboard."
+
+==================================
+7. AI COPILOT + CLOSE (4:30 - 5:00)
+==================================
+SHOW: AI Copilot -> press c
+DO: click "What should I do first
+    on Monday, and why?"
+
+SAY:
+"You can also ask questions in plain
+English. The AI answers only from
+this data and shows a source for
+every point."
+
+CLOSE:
+"So: every number has a source,
+actions are ranked with owners and
+dates, gaps are honest, and it
+stays live.
+That is Account Desk.
+Happy to take questions."
+
+==================================
+IF THEY ASK
+==================================
+Q: Where does the data come from?
+A: "From the game through its MCP
+   connection. My server calls it
+   once a minute."
+
+Q: How are priorities decided?
+A: "Money at stake, how likely it
+   works, and how soon it is due."
+
+Q: Can it handle a new account?
+A: "Yes. Two new accounts arrived
+   during the build and showed up
+   automatically."
+
+Q: Is the AI making things up?
+A: "No. It can only use this data,
+   and the app checks every source
+   it cites."
