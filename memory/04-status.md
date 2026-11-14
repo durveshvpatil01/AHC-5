@@ -62,3 +62,9 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - `npm test` (vitest, 11 tests on frozen fixtures in tests/fixtures) + CI (.github/workflows/ci.yml). Production build checked (`NEXT_DIST_DIR=.next-build npx next build`).
 - Paperwork refresh is now 15 min. In dev (`npm run dev:claude`, PERSIST_SNAPSHOT=1) every live pull is written to data/snapshot: commit it before deploying so the cold-start fallback is fresh.
 - npm audit: the only production finding is postcss inside next (build-time only, our own CSS); the fix needs `--force` (Next major change). Leave it.
+
+## 14 Nov ~17:30: Copilot fix, Discovery, Cockpit (commit 52e9726)
+- Copilot "no answer" bug: the component unmounted when you switched pages mid-stream, and the stored empty turn spun forever. Now it stays mounted (hidden), drops cut-off turns on load, shows a thinking timer, and has a 90 s timeout.
+- Discovery page (key d): engine `discoveryOf` adds facts by minute, claims tested (contradicted/unsupported), unlocks, people and decision coverage. Built for the host's secondary judging (insight and discovery weighted above deals).
+- Cockpit mode (key x / header button): full-screen live view (gauges, countdowns, moves on the clock, red risks, MCP feed).
+- 13 tests pass.
