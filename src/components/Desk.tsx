@@ -3,7 +3,7 @@
 // palette, keyboard shortcuts, and the outbox that writes every change back to the game.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { BookOpenCheck, Bot, Building2, Compass, FileText, Gauge, Map as MapIcon, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
+import { BookOpen, BookOpenCheck, Bot, Building2, Compass, FileText, Gauge, Map as MapIcon, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
 import type { CrmView } from "@/lib/types";
 import type { SyncStatus } from "@/lib/sync";
 import { CiteProvider, fmtDate } from "./ui";
@@ -19,6 +19,7 @@ import { Discovery } from "./Discovery";
 import { Cockpit } from "./Cockpit";
 import { AccountPlan } from "./AccountPlan";
 import { Playbook } from "./Playbook";
+import { Notebook } from "./Notebook";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { OpsProvider, OutboxChip, useOps } from "./ops";
 
@@ -70,6 +71,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
     ...crm.accounts.map((a, i) => ({ id: a.id, label: shortName(a.name), icon: Building2, key: String(i + 1), badge: a.kpis.health.score, badgeCls: a.kpis.health.score < 40 ? "bg-[var(--red-soft)] text-red" : a.kpis.health.score < 65 ? "bg-[var(--amber-soft)] text-amber" : "bg-[var(--green-soft)] text-green", group: i === 0 ? "Accounts" : undefined })),
     { id: "plan", label: "Account plan", icon: MapIcon, key: "a", group: "Strategy" },
     { id: "playbook", label: "Playbook", icon: BookOpenCheck, key: "y", badge: crm.accounts.reduce((n, a) => n + a.lessons.lessons.length, 0) },
+    { id: "notebook", label: "Notebook", icon: BookOpen, key: "n" },
     { id: "discovery", label: "Discovery", icon: Compass, key: "d", badge: crm.accounts.reduce((n, a) => n + a.discovery.counts.facts, 0) },
     { id: "copilot", label: "AI Copilot", icon: Bot, key: "c", group: "Assist" },
     { id: "log", label: "Change log", icon: History, key: "l", badge: sync.changes.length || undefined, group: "Live" },
@@ -182,6 +184,13 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           </div>
         </header>
 
+        {!live && (
+          <div className="px-4 pt-2 md:px-6 print:hidden">
+            <span role="status" className="mono inline-flex items-center gap-1.5 border border-amber/40 bg-[var(--amber-soft)] px-2 py-0.5 text-[10.5px] uppercase tracking-wider text-amber">
+              <Loader2 size={11} className="animate-spin" /> Showing saved data · first live pull in progress
+            </span>
+          </div>
+        )}
         {syncMsg && !panel && <div className="px-4 pt-2 text-xs text-muted md:px-6 print:hidden">{syncMsg}</div>}
         {toast && (
           <div className="px-4 pt-3 md:px-6 print:hidden">
@@ -204,10 +213,11 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           {view === "discovery" && <Discovery crm={crm} />}
           {view === "plan" && <AccountPlan crm={crm} />}
           {view === "playbook" && <Playbook crm={crm} />}
+          {view === "notebook" && <Notebook crm={crm} />}
           {/* Kept mounted so an answer keeps streaming while you look at other pages. */}
           <div hidden={view !== "copilot"}><Copilot crm={crm} /></div>
           {current && <Account key={current.id} acc={current} crm={crm} />}
-          {!["P", "queue", "risks", "log", "brief", "copilot", "discovery", "plan", "playbook"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
+          {!["P", "queue", "risks", "log", "brief", "copilot", "discovery", "plan", "playbook", "notebook"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
         </main>
         <footer className="px-6 pb-8 pt-2 text-[11px] text-dim print:hidden">
           Every number carries the id it comes from: click any <span className="mono text-muted">▤ id</span> chip to open the record. Data: the portal&apos;s own MCP connection to Account Quest · Ctrl+K to search · ? for shortcuts.
