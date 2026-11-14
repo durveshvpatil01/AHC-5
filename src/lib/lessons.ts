@@ -62,6 +62,12 @@ export function lessonsFor(a: RawAccount, pack: RawPack, view: Omit<AccountView,
   const orphan = notesInt.filter((n) => /no account owner|still no owner|who picks this up/i.test(n.text));
   if (orphan.length) L.push({ id: `${A}-L-ORPHAN`, account: A, kind: "mistake", title: "Support tickets had no account owner", whatHappened: orphan.map((n) => `${n.date}: ${n.text}`).join(" · "), why: "Support didn't know who owned the account, so tickets waited.", rule: "Every ticket on a strategic account is auto-assigned to the CSM.", source: "handover history", cite: [r("internal_notes.json")] });
 
+  // The champion is not the user (logins, users.json)
+  const users = recData<{ users: { user_id: string; name: string | null; role: string; sign_ins_last_90_days: number | null }[] }>(pack, "users.json")?.users ?? [];
+  const metIdle = users.filter((u) => u.name && (u.sign_ins_last_90_days ?? 0) === 0).map((u) => ({ u, p: a.stakeholders.find((s) => s.name === u.name) })).filter((x) => x.p);
+  const realOperator = users.filter((u) => /administrator|operator/i.test(u.role) && !u.name).sort((x, y) => (y.sign_ins_last_90_days ?? 0) - (x.sign_ins_last_90_days ?? 0))[0];
+  if (A === "B" && metIdle.length && realOperator && (realOperator.sign_ins_last_90_days ?? 0) > 0) L.push({ id: `${A}-L-USER`, account: A, kind: "mistake", title: "The champion is not the user", whatHappened: `${metIdle.map((x) => `${x.u.name}: ${x.u.sign_ins_last_90_days ?? 0} sign-ins in 90 days`).join(" · ")}, while ${realOperator.role} (${realOperator.user_id}) has ${realOperator.sign_ins_last_90_days}.`, why: "We worked through the sponsor, but the programme is run day to day by someone we never met.", rule: "Find and win the real operator (deputy, unit inspector) as well as the sponsor.", source: "handover history", cite: [r("users.json"), ...metIdle.map((x) => x.p!.id)] });
+
   // Your own notes titled lesson:...
   notes.filter((n) => (!n.account || n.account === A) && /^lesson:/i.test(n.title ?? "")).forEach((n, i) => L.push({ id: `${A}-L-NOTE-${i}`, account: A, kind: "mistake", title: (n.title ?? "").replace(/^lesson:\s*/i, ""), whatHappened: n.text, why: "Recorded by the CSM.", rule: n.text, source: "your note", cite: [] }));
 
@@ -81,16 +87,19 @@ export const PLAYBOOK: { phase: string; steps: { do: string; because: string }[]
     { do: "Get the dock-to-site map and the invoice split before accepting the handover.", because: "Without them, usage can't be shown per force or plant, and the payer is unknown (L-MAP)." },
     { do: "List every open customer request and give each an owner the same day.", because: "Unanswered asks from the ally and the payer were the first red risks (L-NOREPLY)." },
     { do: "Read the usage data before the first call; mark every number in the official story as a claim.", because: "Both official stories were contradicted by usage (L-TRUST)." },
+    { do: "Ask each sub-unit for its document / sign-off requirements (data protection, security).", because: "Tarn Valley's docks waited months for documentation (FB-10412)." },
   ] },
   { phase: "Weeks 2-3: map the power", steps: [
     { do: "Meet one user, one payer and one decider per sub-unit (force / plant). Ask the ally for introductions.", because: "One-door accounts break when the champion leaves (L-THREAD)." },
     { do: "Ask each idle sub-unit what blocks it (documents, sign-off, staffing, network) before anything else.", because: "Tarn Valley's docks waited on documentation; Aldermoor's plants on owners and networks." },
     { do: "Restart a monthly usage report per sub-unit, to a user and a payer.", because: "Idle docks hid for months when the report stopped (L-REPORT)." },
+    { do: "Check operator logins at 30 days; re-train anyone under 5 sign-ins.", because: "Trained operators at idle sites never used the product (users.json)." },
   ] },
   { phase: "Month 1-3: fix, prove", steps: [
     { do: "Clear each sub-unit's blocker, then get first live missions.", because: "Value comes from flying, not from installed docks." },
     { do: "Document value in the customer's own numbers (missions, response times, cost per flight).", because: "This becomes the proof case for renewal and expansion." },
     { do: "Offer only what fixes a pain the person has named.", because: "Those offers were accepted; early pitches were declined (L-WORKED, L-EXPAND)." },
+    { do: "Set a default patrol schedule at every site, not only where asked.", because: "Aldermoor scheduled patrols only at the plants that asked (FR-002)." },
   ] },
   { phase: "Month 3-12: expand", steps: [
     { do: "Pitch expansion only when more than half the fleet flies weekly and no blocker is open.", because: "Pitching more to a customer with idle docks loses trust (L-EXPAND)." },

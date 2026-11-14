@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildCrm, dateIn, parseTaskNote } from "../src/lib/engine";
+import { buildCrm, dateIn, parseTaskNote, type RawFeatureRequest } from "../src/lib/engine";
 import { fleetStats, mergeSignals, type RawExport, type RawPack, type RawSignal } from "../src/lib/model";
 
 const fx = <T>(f: string): T => JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures", f), "utf8")) as T;
@@ -12,7 +12,8 @@ const packs = [fx<RawPack>("pack_A.json"), fx<RawPack>("pack_B.json")];
 const signals = fx<{ signals: RawSignal[] }>("signals.json").signals;
 const sync = { export: { source: "test", at: "" }, signals: { source: "test", at: "", count: 0 }, notes: { source: "test", at: "", count: 0 } };
 const files = { flight_log_force_month: fx<unknown>("file_flight_log_force_month.json") };
-const build = (over: Partial<Parameters<typeof buildCrm>[0]> = {}) => buildCrm({ exp, packs, signals, notes: [], team: [], sync, files, ...over });
+const featureRequests = fx<{ requests: RawFeatureRequest[] }>("feature_requests.json");
+const build = (over: Partial<Parameters<typeof buildCrm>[0]> = {}) => buildCrm({ exp, packs, signals, notes: [], team: [], sync, files, featureRequests, ...over });
 
 /** Every id cited anywhere in the CRM view. */
 function allCites(crm: ReturnType<typeof build>) {
@@ -168,3 +169,47 @@ describe("account plan and lessons", () => {
   });
 });
 
+
+describe("puzzle pieces: logins, feature requests, hidden deal", () => {
+  it("R-NOUSE fires for Stefan Roy (0 sign-ins in 90 days), cited to users.json", () => {
+    const B = build().accounts.find((a) => a.id === "B")!;
+    const r = B.risks.find((x) => x.id === "B-R-NOUSE-stefan_roy");
+    expect(r).toBeTruthy();
+    expect(r!.cite).toEqual(expect.arrayContaining(["stefan_roy", "B:users.json"]));
+    expect(B.risks.some((x) => x.id === "B-R-IDLEOPS")).toBe(true);
+  });
+
+  it("B-C-INSURE is a hypothesis: no value and every step marked hypothesis", () => {
+    const B = build().accounts.find((a) => a.id === "B")!;
+    const c = B.plan.chains.find((x) => x.id === "B-C-INSURE")!;
+    expect(c).toBeTruthy();
+    expect(c.value.amount).toBeNull();
+    expect(c.value.basis).toBe("unknown");
+    expect(c.steps.every((s) => s.status === "hypothesis")).toBe(true);
+  });
+
+  it("feature requests our accounts raised become sources (FR-011, FR-010, FR-002) only when passed in", () => {
+    const crm = build();
+    expect(crm.sources["FR-011"]?.kind).toBe("feature request");
+    expect(crm.sources["FR-010"]).toBeTruthy();
+    expect(crm.sources["FR-002"]).toBeTruthy();
+    expect(build({ featureRequests: null }).sources["FR-011"]).toBeUndefined();
+  });
+
+  it("the champion-is-not-the-user lesson appears for Aldermoor", () => {
+    const B = build().accounts.find((a) => a.id === "B")!;
+    expect(B.lessons.lessons.some((l) => l.id === "B-L-USER")).toBe(true);
+  });
+
+  it("every citation in plan, lessons, risks and gaps resolves (with the new pieces)", () => {
+    const crm = build();
+    const ids = crm.accounts.flatMap((a) => [
+      ...a.plan.chains.flatMap((c) => [...c.cite, ...c.value.cite, ...c.steps.flatMap((s) => s.cite)]),
+      ...a.plan.segments.flatMap((g) => g.cite),
+      ...a.lessons.lessons.flatMap((l) => [l.id, ...l.cite]),
+      ...a.risks.flatMap((r) => r.cite),
+      ...a.gaps.flatMap((g) => g.cite),
+    ]);
+    expect([...new Set(ids)].filter((id) => !crm.sources[id])).toEqual([]);
+  });
+});

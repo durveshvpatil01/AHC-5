@@ -1,5 +1,5 @@
 import "server-only";
-import { buildCrm } from "./engine";
+import { buildCrm, type RawFeatureRequest } from "./engine";
 import type { RawExport, RawPack, RawSignal } from "./model";
 import { getSource, sources, syncStatus, tick } from "./sync";
 import { readSnapshot } from "./aq";
@@ -27,6 +27,7 @@ export async function getCrm(opts: { tick?: boolean } = { tick: true }): Promise
   }
   const team = (readSnapshot<{ people: CrmView["team"] }>("team.json")?.people ?? []).map((p) => ({ id: p.id, name: p.name, role: p.role }));
   const signals = sig.data?.signals ?? [];
+  const featureRequests = getSource<{ requests?: RawFeatureRequest[] }>("feature_requests", "feature_requests.json").data;
 
   const crm = buildCrm({
     exp: exp.data!,
@@ -35,6 +36,7 @@ export async function getCrm(opts: { tick?: boolean } = { tick: true }): Promise
     notes: (notes.data?.notes ?? []).map((n) => ({ id: String(n.id), account: n.account, kind: n.kind, title: n.title, text: n.text, at: n.created_at ? n.created_at.slice(0, 16).replace("T", " ") : n.at })),
     team,
     files,
+    featureRequests,
     sync: {
       export: { source: exp.source, at: exp.fetchedAt ?? "" },
       signals: { source: sig.source, at: sig.fetchedAt ?? "", count: signals.length },

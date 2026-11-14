@@ -25,6 +25,7 @@ export interface AccountPlan {
 }
 
 const money = (amount: number | null, currency: string, basis: Money["basis"], cite: string[], note?: string): Money => ({ amount, currency, basis, cite, note });
+const INSURE_CITE = ["B:emails/2026-10-08_finance_mailbox.txt", "B:calls/2025-08-19_enquiry_call.txt"];
 
 /** Parse the flight log file (get_file) into per-force rows; tolerant of shape. */
 export function flightLogRows(file: unknown): Record<string, string>[] {
@@ -121,7 +122,7 @@ export function buildPlan(a: RawAccount, pack: RawPack, signals: RawSignal[], vi
         "Public event on 5 Dec: wants training dates + named cover in writing.",
         "Batteries on two docks don't last a night shift; email unanswered since Aug.",
       ], ["Operator training before 5 Dec (offer won).", "Priority support / named cover on the day (offer won).", "Battery fix or swap for the two docks."], ["Stadium: 30 docks (Rhys's claim) once staffing is costed.", "Cost-per-flight vs helicopter study as the alliance's proof case."], ["km_usage_1", "km_staff_2", "km_value_2", "urgent_request", "A:emails/2026-08-11_karen_batteries.txt"].filter((x) => x !== "urgent_request" || sig("urgent_request")), { docks: 18, state: "flying" }),
-      seg("Metro Central", ["Flies operationally but is fading month on month.", "Raises routine tickets (training flights, map layers, report exports)."], ["Scheduled flight-report export (feature request FR-010 they raised).", "Refresher on scheduled missions."], ["Win back usage, then a Metro Central events case."], ["rc_appetite_2", "FB-10248", "FB-10781"], { docks: 9, state: "fading" }),
+      seg("Metro Central", ["Flies operationally but is fading month on month.", "Raises routine tickets (training flights, map layers, report exports)."], ["Scheduled flight-report export (FR-010) or a manual monthly export as a workaround.", "Refresher on scheduled missions."], ["Win back usage, then a Metro Central events case."], ["rc_appetite_2", "FB-10248", "FB-10781", "FR-010"], { docks: 9, state: "fading" }),
       seg("Tarn Valley", ["Zero live flights since May; 4 docks 'awaiting sign-off'.", "An unanswered force-level document request (FB-10412) has been open since June.", "No named contact."], ["Answer FB-10412: the documentation the sign-off is waiting for (likely data-handling).", "Introduction via Karen (she talks to the other units)."], ["Prove value on its first live missions, then ask about its own stadium/events (the Westmere template)."], ["rc_appetite_2", "FB-10412"], { docks: 4, state: "not live" }),
       seg("Norwold", ["Training flights only, never operational.", "No named contact."], ["Operator training to move from training to live patrols (reuse the Westmere training offer)."], ["First operational use case, then events/stadium like Westmere."], ["rc_appetite_2"], { docks: 4, state: "training only" }),
     );
@@ -176,6 +177,7 @@ export function buildPlan(a: RawAccount, pack: RawPack, signals: RawSignal[], vi
       steps: [
         { id: "A-S-REN-1", kind: "deliver", label: "Schedule 2 + install sheets from inside FlytBase", detail: "Who pays which quarter; which dock is at which force.", status: "open", owner: "You (CSM) + Achal Negi", due: due(2), cite: [r("invoices.json"), r("internal_notes.json")] },
         { id: "A-S-REN-2", kind: "deliver", label: "Usage by force, monthly", detail: "Restart the usage summary Sam stopped sending in July, now split by force.", status: "open", owner: "You (CSM)", due: due(10), cite: [r("calls/2026-08-19_check_in.txt")] },
+        { id: "A-S-REN-2b", kind: "deliver", label: "Board pack: monthly usage-by-force chart (FR-011, asked for by Rhys)", detail: "Rhys asked for a monthly summary chart for boards (FR-011, still 'new' in the product log). Build it by hand from the usage data until the product has it: it gives Hannah and the boards the renewal case.", status: "open", owner: "You (CSM)", due: due(12), cite: ["FR-011", r("calls/2026-06-02_check_in.txt")] },
         { id: "A-S-REN-3", kind: "person", label: "Meet Hannah Doyle (procurement)", detail: "Walk her through usage by force; agree the renewal path.", status: "open", owner: "You (CSM) + Achal Negi", due: due(14), cite: ["hannah_doyle"] },
         { id: "A-S-REN-4", kind: "person", label: "Rhys's successor named and introduced", detail: "Before Rhys leaves in January.", status: sig("champion_leaves") ? "at-risk" : "open", owner: "You (CSM)", due: "2026-12-31", cite: sig("champion_leaves") ? ["champion_leaves"] : ["rhys_calder"] },
         { id: "A-S-REN-5", kind: "money", label: "New order signed", detail: "Sized on real usage per force.", status: "open", owner: "Achal Negi", due: termCap, value: k.renewal, cite: [r("contract.txt")] },
@@ -196,9 +198,9 @@ export function buildPlan(a: RawAccount, pack: RawPack, signals: RawSignal[], vi
     const stopped = view.fleet.filter((d) => d.flags.some((f) => f.startsWith("stopped") || f.startsWith("fell")));
     const never = view.fleet.filter((d) => d.status === "never" || d.status === "dormant");
     segments.push(
-      { id: "busy", name: `Busy docks (${busy.map((d) => d.dockId).join(", ") || "none"})`, docks: busy.length, live: busy.length, missions: busy.reduce((x, d) => x + d.last4, 0), training: null, state: stopped.length ? "fading" : "flying", know: [`${busy.length} docks carry the fleet.`, ...(stopped.length ? [`${stopped.map((d) => d.dockId).join(", ")} stopped in the last 2 weeks while online.`] : [])], give: ["Find out what changed at those plants and restore the schedules."], build: ["Measured patrol results per plant: the case study's evidence."], cite: [...busy.map((d) => d.dockId), "B:usage_weekly.csv"] },
+      { id: "busy", name: `Busy docks (${busy.map((d) => d.dockId).join(", ") || "none"})`, docks: busy.length, live: busy.length, missions: busy.reduce((x, d) => x + d.last4, 0), training: null, state: stopped.length ? "fading" : "flying", know: [`${busy.length} docks carry the fleet.`, ...(stopped.length ? [`${stopped.map((d) => d.dockId).join(", ")} stopped in the last 2 weeks while online.`] : [])], give: ["Find out what changed at those plants and restore the schedules."], build: ["Measured patrol results per plant: the case study's evidence.", "Replace contractor night-guarding hours per plant (the real savings case)."], cite: [...busy.map((d) => d.dockId), "B:usage_weekly.csv", "B:calls/2025-08-19_enquiry_call.txt"] },
       { id: "low", name: `Low-use docks (${low.length})`, docks: low.length, live: low.length, missions: low.reduce((x, d) => x + d.last4, 0), training: null, state: "fading", know: ["Fly about once a month: a token patrol.", "No owner per plant; the rollout know-how sits with Stefan's deputy."], give: ["Owner per plant + patrol schedule (deputy session).", "Alert routing like Plant 7 asked for (FB-10944)."], build: ["Weekly patrols at every plant, then a group-wide security report."], cite: [...low.slice(0, 4).map((d) => d.dockId), "sr_repl_2", "FB-10944"] },
-      { id: "never", name: `Never flown / offline (${never.map((d) => d.dockId).join(", ") || "none"})`, docks: never.length, live: 0, missions: 0, training: null, state: "not live", know: ["Online but never tasked, or dropping off the plant network (Plant 11, FB-10903)."], give: ["Named group IT contact; fix the plant link."], build: ["Bring online before the renewal is priced per plant."], cite: [...never.map((d) => d.dockId), "FB-10903"] },
+      { id: "never", name: `Never flown / offline (${never.map((d) => d.dockId).join(", ") || "none"})`, docks: never.length, live: 0, missions: 0, training: null, state: "not live", know: ["Online but never tasked, or dropping off the plant network (Plant 11, FB-10903).", "AD-01 is most likely the Plant 11 dock (inferred: its offline pattern matches FB-10903 and it missed the 16 Sep update)."], give: ["Named group IT contact; fix the plant link."], build: ["Bring online before the renewal is priced per plant."], cite: [...never.map((d) => d.dockId), "FB-10903", "AD-01", "B:device_events.csv"] },
     );
     chains.push({
       id: "B-C-RENEW", title: `Renew the 14 docks before ${k.termEnds ?? "term end"}`, why: "Finance wants cost per plant; only a few docks earn their cost; Stefan calls renewal 'a formality' and told Sam to ignore finance.",
@@ -216,9 +218,21 @@ export function buildPlan(a: RawAccount, pack: RawPack, signals: RawSignal[], vi
       steps: [
         { id: "B-S-IDLE-1", kind: "deliver", label: "Deputy session: install list, owner per plant, schedules", detail: "Write down the rollout before he leaves.", status: "at-risk", owner: "You (CSM) + Neel Sharma", due: due(5), cite: ["sr_repl_2", "ba_deputy_0"] },
         { id: "B-S-IDLE-2", kind: "person", label: "Group IT contact for plant networks", detail: "Unblocks FB-10903 (Plant 11) and the weak-signal plants.", status: reqOpen("FB-10903") ? "open" : "done", owner: "Pranjal Suyal", due: due(10), cite: ["FB-10903"] },
+        { id: "B-S-IDLE-2b", kind: "deliver", label: "Patrol schedule at every plant: push FR-002 (copy schedule across sites) with SRV, or set them up manually with the deputy", detail: "At rollout, scheduled night patrols were set up only at the plants that asked; the others got a dock online and one trained operator. FR-002 (copy a patrol schedule to other sites) is under review.", status: "open", owner: "You (CSM) + Neel Sharma", due: due(14, termCap), cite: ["FR-002", "B:calls/2026-04-23_rollout_close.txt"] },
         { id: "B-S-IDLE-3", kind: "usage", label: "Every plant patrols weekly", detail: "Owner + schedule at each plant.", status: "blocked", owner: "Plant owners", due: due(45, termCap), cite: ["B:usage_weekly.csv"] },
         { id: "B-S-IDLE-4", kind: "proof", label: "Measured value per plant", detail: "Patrols flown, incidents found, signed off by a plant manager.", status: "open", owner: "You (CSM)", due: due(75), cite: ["sr_roi_0"] },
         { id: "B-S-IDLE-5", kind: "expansion", label: "Re-offer Plant 15 + two idle plants", detail: "Declined in the morning because it came before the value. Re-offer only on proof (lesson L-EXPAND).", status: "hypothesis", owner: "Achal Negi", due: due(120), value: money(160000, "game$", "claim", ["b_more_plants"]), cite: ["b_more_plants"] },
+      ],
+    });
+    chains.push({
+      // Hypothesis only: named in the morning debrief; nothing on file mentions insurance. No value, no fact.
+      id: "B-C-INSURE", title: "Protect the insurance discount (hypothesis)", why: "Named only in the morning debrief; nothing on file mentions insurance.",
+      unlocks: "If true: a reason for group finance to keep (and extend) patrols at every plant, beyond Stefan's case study.",
+      value: money(null, cur, "unknown", INSURE_CITE, "Hypothesis: no insurance figure or record on file."), cite: INSURE_CITE,
+      steps: [
+        { id: "B-S-INS-1", kind: "person", label: "Ask group finance whether the insurer's premium depends on documented night patrols", detail: "Hypothesis to test, not a fact. Night guarding is done by contractors at each plant; finance already wrote asking for cost per plant.", status: "hypothesis", owner: "You (CSM)", due: due(7), cite: INSURE_CITE },
+        { id: "B-S-INS-2", kind: "proof", label: "Patrol log per plant for the insurer", detail: "Only if finance confirms: patrols flown per plant per night, from the usage data.", status: "hypothesis", owner: "You (CSM) + Pranjal Suyal", due: due(30), cite: ["B:usage_weekly.csv"] },
+        { id: "B-S-INS-3", kind: "money", label: "Keep and extend the discount", detail: "Only if the discount exists and depends on patrols.", status: "hypothesis", owner: "Achal Negi", due: due(90, termCap), cite: INSURE_CITE },
       ],
     });
     chains.push({

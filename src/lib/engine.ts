@@ -17,9 +17,30 @@ export interface RawInput {
   team: CrmView["team"];
   sync: CrmView["sync"];
   files?: Record<string, unknown>; // data-room files pulled with get_file, by file id
+  featureRequests?: { requests?: RawFeatureRequest[] } | null; // get_feature_requests
 }
 
 const STANCE_SCORE: Record<Stance, number> = { guarded: 25, neutral: 50, warm: 75, ally: 100, unknown: 0 };
+
+export interface RawFeatureRequest {
+  id: string; title: string; product_area?: string; status: string; mentions?: number; first_raised?: string; last_raised?: string;
+  raised_by?: string[]; raised_by_your_accounts?: { account: string; who: string; via?: string; date?: string }[];
+}
+
+/** One source per feature request our accounts raised (FR-002 is raised by the FlytBase rollout lead during the Aldermoor rollout, so it is listed too). */
+function featureRequestSources(fr: RawInput["featureRequests"], accIds: string[]): Record<string, Source> {
+  const out: Record<string, Source> = {};
+  for (const q of fr?.requests ?? []) {
+    const ours = (q.raised_by_your_accounts ?? []).filter((x) => accIds.includes(x.account));
+    if (!ours.length && q.id !== "FR-002") continue;
+    out[q.id] = {
+      id: q.id, kind: "feature request", title: q.title,
+      text: `Status: ${q.status}${q.product_area ? ` · area ${q.product_area}` : ""}\nMentions across customers: ${q.mentions ?? "n/a"} (first ${q.first_raised ?? "?"}, last ${q.last_raised ?? "?"})\nRaised by our accounts: ${ours.map((x) => `account ${x.account}: ${x.who}${x.via ? ` (${x.via})` : ""}${x.date ? `, ${x.date}` : ""}`).join("; ") || "none"}\n\nA status is where the request sits in FlytBase's log, not a commitment to build.`,
+      meta: "FlytBase feature request log (get_feature_requests)",
+    };
+  }
+  return out;
+}
 const fmt = (n: number, cur: string) => (cur === "GBP" ? "£" : cur === "EUR" ? "€" : "$") + Math.round(n).toLocaleString("en-GB");
 
 function seat(role: PowerSeat["role"], p: { id: string; name: string; relationship: Stance } | undefined, fallbackName: string, cite: string[], note?: string): PowerSeat {
@@ -44,6 +65,7 @@ export function buildCrm(input: RawInput): CrmView {
   const asOf = [...signals.map((s) => s.dated), addDays(lastWeek, 6)].filter(Boolean).sort().pop()!;
 
   const sources = buildSources(exp, packs, signals, Object.fromEntries(Object.entries(fleets).map(([k, v]) => [k, v.docks])));
+  Object.assign(sources, featureRequestSources(input.featureRequests, accIds));
   const accounts = rawAccounts.map((a) => buildAccount(a, packs.find((p) => p.account === a.id)!, signals.filter((s) => s.account === a.id), fleets[a.id], asOf, sources, deltas));
 
   applyTaskNotes(accounts, input.notes, asOf);
@@ -311,6 +333,14 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
   const batt = docks.filter((d) => d.battery >= 5);
   if (batt.length)
     risks.push({ id: `${A}-R-BATT`, level: "amber", title: `Battery warnings on ${batt.map((d) => d.dockId).join(", ")}`, detail: "Matches Karen Mbeki's unanswered email: batteries do not last a night shift.", turnsBadOn: null, rule: "R-BATT: ≥ 5 battery health warnings on one dock.", cite: [...batt.map((d) => d.dockId), r("emails/2026-08-11_karen_batteries.txt")] });
+  // Logins (users.json): who actually uses the product.
+  const users = recData<{ users: { user_id: string; name: string | null; role: string; last_sign_in?: string | null; sign_ins_last_90_days: number | null }[] }>(pack, "users.json")?.users ?? [];
+  for (const u of users.filter((x) => x.name && (x.sign_ins_last_90_days ?? 0) === 0)) {
+    const p = a.stakeholders.find((s) => s.name === u.name);
+    if (p) risks.push({ id: `${A}-R-NOUSE-${p.id}`, level: "amber", title: `${p.name} has not used the product in 90 days`, detail: `${u.role}; 0 sign-ins in the last 90 days${u.last_sign_in ? `, last on ${u.last_sign_in}` : ""}. A sponsor who doesn't use the product can't speak for its value.`, turnsBadOn: null, rule: "R-NOUSE: a met stakeholder with 0 sign-ins in 90 days.", cite: [p.id, r("users.json")] });
+  }
+  const idleOps = users.filter((x) => /^operator/i.test(x.role) && (x.sign_ins_last_90_days ?? 0) <= 3);
+  if (idleOps.length) risks.push({ id: `${A}-R-IDLEOPS`, level: "amber", title: `${idleOps.length} trained operator${idleOps.length > 1 ? "s" : ""} barely use the product`, detail: `${idleOps.map((x) => `${x.user_id} (${x.sign_ins_last_90_days ?? 0})`).join(", ")} sign-ins in 90 days. Which site each login belongs to is not on file.`, turnsBadOn: null, rule: "R-IDLEOPS: operator logins with ≤ 3 sign-ins in 90 days.", cite: [r("users.json")] });
   const order: Record<string, number> = { red: 0, amber: 1, green: 2, grey: 3 };
   risks.sort((x, y) => order[x.level] - order[y.level] || (x.turnsBadOn ?? "9999").localeCompare(y.turnsBadOn ?? "9999"));
 
@@ -329,6 +359,12 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
   a.deadlines.filter((d) => !d.passed).forEach((d, i) => gaps.push({ id: `${A}-G-DATE-${i}`, question: `When exactly: “${d.text.split(".")[0]}”?`, why: "A deadline with no date cannot be planned inside.", whoCanTell: A === "A" ? "Hannah Doyle (spec owner)" : "Beatriz Alonso / Stefan Roy", rule: "R-GAP-DATE: known deadline without a date.", cite: a.opportunities.filter((o) => o.deadline?.text === d.text).map((o) => o.id) }));
   if (A === "A" && rec(pack, "requests.csv")?.text?.includes("FB-10412"))
     gaps.push({ id: "A-G-10412", question: "Who sent document request FB-10412, and is it what Tarn Valley's sign-off is waiting for?", why: "Tarn Valley has been 'awaiting sign-off' since May; an unanswered force-level document request has been open since June. If they are the same thing, a reply unlocks 4 docks.", whoCanTell: "FlytBase support desk (requester details)", rule: "R-GAP-LINK: two open items on the same account in the same window.", cite: ["FB-10412", "flight_log_force_month"] });
+  if (A === "A" && users.length) {
+    const low = users.filter((u) => /^operator/i.test(u.role) && (u.sign_ins_last_90_days ?? 0) <= 3);
+    const never = low.filter((u) => !u.last_sign_in);
+    gaps.push({ id: "A-G-OPERATORS", question: `Which operators belong to Tarn Valley and Norwold (${low.length - never.length} accounts at ≤3 sign-ins, ${never.length} never)?`, why: "Logins don't say which force they belong to; without it we can't target re-training at the idle forces.", whoCanTell: "Field team attendance sheets", rule: "R-GAP-USERS: logins with no site on file.", cite: [r("users.json"), r("calls/2026-03-24_install_check_in.txt")] });
+  }
+  if (A === "B") gaps.push({ id: "B-G-INSURE", question: "Is there an insurance discount tied to drone patrols, and what does it require?", why: "Hypothesis from the morning debrief only; nothing on file mentions insurance. If true, it is a second reason for finance to keep patrols at every plant.", whoCanTell: "Group finance / plant managers", rule: "R-GAP-HIDDEN: a possible deal named outside the records.", cite: ["B:emails/2026-10-08_finance_mailbox.txt"] });
 
   /* ---------------- moves (Q3) ---------------- */
   const moves: Move[] = [];
