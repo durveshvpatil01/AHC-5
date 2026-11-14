@@ -81,3 +81,4 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 
 FROZEN at 16:05 IST
 - 17:25 Claude: H and K integrated (load.ts merge, blocker normalise, file texts, generic plays/moves). 0 missing cites A/B/H/K. 24 tests pass.
+- 17:37 DEPLOYED on Render (Free web service): https://account-desk-crm.onrender.com · commit 769c1a1 · env AQ_TOKEN, COPILOT_ANTHROPIC_KEY, NODE_VERSION=22 · public-repo source (redeploy = Manual Deploy). Verified: MCP get_signals ok from Render, 4 accounts, Copilot answers. Stop localhost servers (shared token).
