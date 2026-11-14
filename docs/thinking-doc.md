@@ -17,7 +17,7 @@ Every number, status, and claim on screen carries a clickable `<Cite>` chip that
 ### Health Score (0–100)
 `health = 0.50 × usage + 0.25 × relationships + 0.25 × support`
 - **Usage (50%)**: percentage of installed docks that flew ≥ 4 times in the last 4 weeks (`active / total docks × 100`).
-- **Relationships (25%)**: average stance score across met stakeholders (`guarded = 25`, `neutral = 55`, `warm = 80`, `ally = 100`).
+- **Relationships (25%)**: average stance score across met stakeholders (`guarded = 25`, `neutral = 50`, `warm = 75`, `ally = 100`).
 - **Support (25%)**: starts at 100 and subtracts 25 points for each open, unowned support/document request.
 
 ### Move Ranking (`R-MOVE`)
