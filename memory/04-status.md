@@ -36,3 +36,10 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - write_note tested: OK, note id 143035 (account A, next_step, the Karen reply). Response shape: {id, created_at, account, kind, title, text, source}.
 - **One token is shared by everything that runs it.** Local dev servers, the Vercel deploy and scripts all draw on the same 1 call/min. After deploying, stop the local servers, or the hosted CRM gets rate-limited (it then falls back to the snapshot and stays correct, just not live).
 - Drafts are ready: `docs/thinking-doc.md` (paste into a Google Doc) and `docs/video-script.md`.
+
+## 14 Nov ~15:30: the portal owns its MCP connection (host's requirement)
+- The host said judges want to see **the portal's own MCP connection**, not data pulled by Claude/GPT. Fresh data will be dropped at random times (around 16:00 and later).
+- `src/lib/sync.ts`: JSON-RPC tools/call scheduler, 1 call/61 s, most-overdue first (get_signals 60 s, get_my_accounts 5 min, list_notes 5 min, get_all_paperwork/account 1 h). New accounts are auto-added.
+- Browser: `LiveDesk` polls `/api/crm?v=` every 20 s and swaps data in place. The header pill "MCP live" opens `McpPanel` (sources, call log, Sync now). `/api/sync` forces get_signals. `/api/live` was removed.
+- Engine: an unknown live event → R-SIGNAL risk + R-MOVE-SIGNAL move + Δ before/after lines; a new account (no contract) → stub view + an R-MOVE-NEW intro move. Tested with `npx tsx scripts/sim-check.ts`.
+- Only ONE process should run with the token at a time (local dev OR Vercel), or they starve each other.
