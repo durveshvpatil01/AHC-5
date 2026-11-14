@@ -52,3 +52,8 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - `ChangeLog.tsx` (sync.changes diffs + signal impacts + call log), `RiskRadar.tsx`, `Brief.tsx` (printable).
 - Dev servers: Claude uses `npm run dev:claude` (port 3101, distDir .next-claude); Antigravity keeps .next. Never run two servers on one distDir.
 - Not done yet: Vercel deploy (Durvesh), Thinking doc → Google Doc, video, hand-in.
+
+## 14 Nov ~16:30: AI Copilot working
+- `/api/copilot` (Claude Opus 5.5 via @anthropic-ai/sdk 1.8, streaming, prompt-cached CRM context, fallbacks "default", effort medium). Key: `COPILOT_ANTHROPIC_KEY` in .env.local (a stale system ANTHROPIC_API_KEY exists on this PC, so don't rely on that name). On Vercel, add COPILOT_ANTHROPIC_KEY too.
+- Moves, risks and gaps are registered as sources (citable, open in the drawer).
+- `node scripts/copilot-check.mjs [baseUrl]` asks test questions and verifies citations. The 14 Nov run had 34 citations, 0 unknown, answers in 9-24 s.

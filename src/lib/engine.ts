@@ -45,6 +45,26 @@ export function buildCrm(input: RawInput): CrmView {
 
   applyTaskNotes(accounts, input.notes, asOf);
   attachDrafts(accounts);
+  // Moves, risks and gaps are sources too, so the Copilot (and any chip) can cite and open them.
+  for (const a of accounts) {
+    for (const m of a.moves) sources[m.id] = { id: m.id, kind: "move", title: `Move #${m.rank}: ${m.title}`, text: `${m.detail}
+
+Owner: ${m.owner}${m.helpers.length ? ` + ${m.helpers.join(", ")}` : ""} · due ${m.due} · status ${m.status}
+Moves deals: ${m.dealIds.join(", ")}
+Why: ${m.why}
+Score: stake ${Math.round(m.score.stake)} ${m.score.currency} × confidence ${m.score.confidence} ÷ (${m.score.daysLeft} days + 1)
+Evidence: ${m.cite.join(", ")}`, meta: `Account ${a.id} · ranked by the rules engine` };
+    for (const r of a.risks) sources[r.id] = { id: r.id, kind: "risk", title: `${r.level.toUpperCase()} risk: ${r.title}`, text: `${r.detail}
+
+Turns bad: ${r.turnsBadOn ?? "date not on file"}
+Rule: ${r.rule}
+Evidence: ${r.cite.join(", ")}`, meta: `Account ${a.id} · rules engine` };
+    for (const g of a.gaps) sources[g.id] = { id: g.id, kind: "gap", title: `Unknown: ${g.question}`, text: `${g.why}
+
+Who can tell us: ${g.whoCanTell}
+Rule: ${g.rule}
+Evidence: ${g.cite.join(", ")}`, meta: `Account ${a.id} · rules engine` };
+  }
   return {
     asOf,
     generatedAt: new Date().toISOString(),
