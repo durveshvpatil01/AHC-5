@@ -43,7 +43,7 @@ export function LiveDesk({ initial }: { initial: LiveState }) {
   }, [apply]);
 
   useEffect(() => {
-    const first = setTimeout(poll, 2_000);
+    const first = setTimeout(poll, 500);
     const h = setInterval(poll, POLL_MS);
     const vis = () => document.visibilityState === "visible" && poll();
     document.addEventListener("visibilitychange", vis);

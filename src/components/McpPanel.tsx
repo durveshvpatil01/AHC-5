@@ -74,7 +74,7 @@ export function McpPanel({ sync, onSync, syncing, syncMsg, lastPoll, pollEverySe
                 {s.lastError && <div className="mt-0.5 text-red">{s.lastError}</div>}
               </div>
               <div className="text-right text-muted">
-                <div>pulled {ago(s.fetchedAt, now)}</div>
+                <div>{s.source === "snapshot" ? "saved copy (fallback)" : `pulled ${ago(s.fetchedAt, now)}`}</div>
                 <div>next {s.fetchedAt ? until(s.nextDueAt, now) : "soon"}</div>
                 {s.bytes > 0 && <div className="mono text-dim">{(s.bytes / 1024).toFixed(1)} KB</div>}
               </div>
