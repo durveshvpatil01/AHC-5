@@ -35,6 +35,9 @@ store.changes ??= [];
 export function sources(): SourceDef[] {
   const base: SourceDef[] = [
     { key: "signals", tool: "get_signals", args: {}, everySec: 60, snapshot: "signals.json", label: "Live events" },
+    { key: "me", tool: "whoami", args: {}, everySec: 180, snapshot: "me.json", label: "Who am I & new accounts" },
+    { key: "new_H", tool: "get_new_account", args: { account: "H" }, everySec: 300, snapshot: "new_H.json", label: "New account H" },
+    { key: "new_K", tool: "get_new_account", args: { account: "K" }, everySec: 300, snapshot: "new_K.json", label: "New account K" },
     { key: "accounts", tool: "get_my_accounts", args: {}, everySec: 300, snapshot: "export.json", label: "Accounts, people, facts, deals" },
     { key: "notes", tool: "list_notes", args: {}, everySec: 300, snapshot: "notes.json", label: "Notes written back" },
     { key: "pack_A", tool: "get_all_paperwork", args: { account: "A" }, everySec: 900, snapshot: "pack_A.json", label: "Paperwork, account A" },
@@ -45,6 +48,27 @@ export function sources(): SourceDef[] {
   // Data-room files the player holds (e.g. the flight log by force), pulled with get_file.
   const exp = (store.data["accounts"] ?? readSnapshot("export.json")) as { files?: { id: string; title: string }[] } | null;
   for (const f of exp?.files ?? []) base.push({ key: `file_${f.id}`, tool: "get_file", args: { id: f.id }, everySec: 3600, snapshot: `file_${f.id}.json`, label: `File: ${f.title}` });
+  const me = (store.data["me"] ?? readSnapshot("me.json")) as { new_accounts?: (string | { id?: string; account?: string })[]; pack?: { account: string; open?: boolean }[] } | null;
+  const newIds = new Set<string>(["H", "K"]);
+  for (const x of me?.new_accounts ?? []) {
+    const id = typeof x === "string" ? x : (x?.id ?? x?.account ?? "");
+    if (id && /^[A-Z]$/.test(id)) newIds.add(id);
+  }
+  for (const id of newIds) {
+    if (!base.some((b) => b.key === `new_${id}`)) base.push({ key: `new_${id}`, tool: "get_new_account", args: { account: id }, everySec: 300, snapshot: `new_${id}.json`, label: `New account ${id}` });
+    const rawNew = (store.data[`new_${id}`] ?? readSnapshot(`new_${id}.json`)) as { files?: { id: string; title: string }[]; account?: { files?: { id: string; title: string }[] }; accounts?: { files?: { id: string; title: string }[] }[] } | null;
+    const newFiles = rawNew?.files ?? rawNew?.account?.files ?? rawNew?.accounts?.flatMap((a) => a.files ?? []) ?? [];
+    for (const f of newFiles) {
+      if (!base.some((b) => b.key === `file_${f.id}`)) {
+        base.push({ key: `file_${f.id}`, tool: "get_new_account_file", args: { account: id, file_id: f.id }, everySec: 3600, snapshot: `file_${f.id}.json`, label: `File (${id}): ${f.title}` });
+      }
+    }
+  }
+  for (const p of me?.pack ?? []) {
+    if (p.open && p.account !== "A" && p.account !== "B" && !base.some((b) => b.key === `pack_${p.account}`)) {
+      base.push({ key: `pack_${p.account}`, tool: "get_all_paperwork", args: { account: p.account }, everySec: 900, snapshot: `pack_${p.account}.json`, label: `Paperwork, account ${p.account}` });
+    }
+  }
   return base;
 }
 
@@ -272,7 +296,7 @@ function diffLines(key: string, prev: unknown, next: unknown): string[] {
 /** Local dev only (PERSIST_SNAPSHOT=1): write each live answer back to data/snapshot, so the committed
  * cold-start fallback is as fresh as the last pull. On Vercel the file system is read-only, so this is off. */
 function persistSnapshot(file: string, data: unknown) {
-  if (process.env.PERSIST_SNAPSHOT !== "1") return;
+  if (process.env.NODE_ENV === "production" && process.env.PERSIST_SNAPSHOT !== "1") return;
   try {
     fs.writeFileSync(path.join(process.cwd(), "data", "snapshot", file), JSON.stringify(data, null, 1));
   } catch {}

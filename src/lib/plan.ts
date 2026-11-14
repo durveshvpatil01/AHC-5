@@ -247,6 +247,26 @@ export function buildPlan(a: RawAccount, pack: RawPack, signals: RawSignal[], vi
     });
   }
 
+  if (A !== "A" && A !== "B") {
+    // Generic plays for an account that arrived mid-build: clear the blocker → meet who decides and pays → agree.
+    for (const o of a.opportunities) {
+      const mins = (o.deadline as { minute?: number } | null)?.minute;
+      const deadlineDate = typeof mins === "number" ? addDays(asOf, Math.round(mins / 1440)) : null;
+      const worth = o.worth_up_to;
+      const ev = o.evidence.length ? o.evidence : [o.id];
+      chains.push({
+        id: `${A}-C-${o.id}`, title: o.title, why: o.blocker ? `Blocked: ${o.blocker}` : `Stage: ${o.stage}; nobody who decides or pays met yet.`,
+        unlocks: worth != null ? `Up to ${worth.toLocaleString("en-GB")} (game value) once agreed.` : "Value unknown until qualified.",
+        value: money(worth, "game$", worth != null ? "backed" : "unknown", [o.id]), cite: [o.id],
+        steps: [
+          ...(o.blocker ? [{ id: `${A}-S-${o.id}-1`, kind: "deliver" as StepKind, label: `Clear the blocker: ${o.blocker}`, detail: "Prepare the fix from the evidence that proves the blocker, and send it to the one person who can approve it.", status: "open" as StepStatus, owner: "You (CSM)", due: due(7, deadlineDate), cite: ev.slice(0, 3) }] : []),
+          { id: `${A}-S-${o.id}-2`, kind: "person", label: "Meet who decides and who pays", detail: "Both must be in the meeting that agrees it.", status: "open", owner: "You (CSM)", due: due(21, deadlineDate), cite: [o.id] },
+          { id: `${A}-S-${o.id}-3`, kind: worth != null ? "money" : "expansion", label: `Agree: ${o.title}`, detail: o.deadline?.text ?? "No deadline on file.", status: o.stage === "agreed" ? "done" : "open", owner: "Achal Negi", due: deadlineDate ?? due(60), value: money(worth, "game$", worth != null ? "backed" : "unknown", [o.id]), cite: [o.id] },
+        ],
+      });
+    }
+  }
+
   /* ---------------- plan horizons: prerequisites first ---------------- */
   const plan: PlanItem[] = [];
   for (const c of chains) {

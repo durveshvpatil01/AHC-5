@@ -68,6 +68,12 @@ export function buildCrm(input: RawInput): CrmView {
   Object.assign(sources, featureRequestSources(input.featureRequests, accIds));
   const accounts = rawAccounts.map((a) => buildAccount(a, packs.find((p) => p.account === a.id)!, signals.filter((s) => s.account === a.id), fleets[a.id], asOf, sources, deltas));
 
+  // File citations open the real file content pulled through the MCP (get_file / get_new_account_file).
+  for (const [id, content] of Object.entries(input.files ?? {})) {
+    const c = content as { text?: string; content?: string; name?: string } | string;
+    const text = typeof c === "string" ? c : (c?.text ?? c?.content ?? "");
+    if (text && sources[id]) sources[id] = { ...sources[id], text: text.length > 6000 ? text.slice(0, 6000) + "\n…(truncated)" : text, meta: `${sources[id].meta ?? ""} · pulled through the MCP` };
+  }
   applyTaskNotes(accounts, input.notes, asOf);
   attachDrafts(accounts);
   // Strategy layer: story, unlock chains, segments, plan horizons, lessons and guards.
@@ -81,6 +87,25 @@ Evidence: ${d.value.cite.join(", ")}`, meta: `Account ${acc.id} · built from th
     const pack = packs.find((p) => p.account === acc.id)!;
     acc.plan = buildPlan(raw, pack, signals.filter((s) => s.account === acc.id), acc, asOf, input.files ?? {});
     acc.lessons = lessonsFor(raw, pack, acc, input.notes);
+    // Accounts without tailored rules (e.g. dropped mid-build) get moves from their plays: the first open step of each.
+    if (acc.id !== "A" && acc.id !== "B") {
+      for (const c of acc.plan.chains) {
+        const st = c.steps.find((x) => x.status !== "done");
+        if (!st || acc.moves.some((m) => m.id === st.id)) continue;
+        const dueD = st.due ?? addDays(asOf, 14);
+        const daysLeft = Math.max(daysBetween(asOf, dueD), 0);
+        const stake = c.value.amount ?? 0;
+        acc.moves.push({ id: st.id, rank: 0, title: st.label, detail: `${st.detail} Play: ${c.title}.`, owner: st.owner, helpers: [], due: dueD, dealIds: [c.id.replace(`${acc.id}-C-`, "")], why: "R-MOVE-PLAY: first open step of a play on an account without tailored rules.", score: { stake, currency: c.value.currency, daysLeft, confidence: 0.5, total: (stake * 0.5) / (daysLeft + 1) }, cite: st.cite, noteText: `${st.label} (${c.title}). Owner: ${st.owner}. Due: ${dueD}.`, status: "open", plannedOwner: st.owner, plannedDue: dueD, history: [] });
+      }
+      acc.moves.sort((x, y) => y.score.total - x.score.total).forEach((m, i) => (m.rank = i + 1));
+      acc.answers.first = acc.moves.slice(0, 3).map((m) => `${m.rank}. ${m.title} (${m.owner}, by ${m.due})`).join(" · ");
+      for (const m of acc.moves) if (!m.draft) m.draft = { channel: "internal", to: m.owner, subject: m.title, body: `${m.detail}
+
+Owner: ${m.owner}. Due: ${m.due}.`, cite: m.cite };
+      for (const m of acc.moves) if (!sources[m.id]) sources[m.id] = { id: m.id, kind: "move", title: `Move #${m.rank}: ${m.title}`, text: `${m.detail}
+Owner ${m.owner} · due ${m.due}
+Evidence: ${m.cite.join(", ")}`, meta: `Account ${acc.id}` };
+    }
     for (const g of acc.lessons.guards) {
       const m = acc.moves.find((x) => x.id === g.appliesTo);
       if (m) m.warnings = [...(m.warnings ?? []), `${g.lessonId}: ${g.warning}`];
@@ -353,7 +378,7 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
     /deputy/i.test(t) ? "Beatriz Alonso (named him) / Stefan Roy" :
     /IT/.test(t) ? "Stefan Roy / the plant manager at Plant 11" :
     /Metro Central|Tarn Valley|Norwold|plant/i.test(t) ? (A === "A" ? "Insp. Karen Mbeki (talks to the other units)" : "Beatriz Alonso / group finance") : "Neel Sharma";
-  prof.not_on_file.forEach((t, i) => gaps.push({ id: `${A}-G-FILE-${i}`, question: t.replace(/\.$/, "") + "?", why: "The plan needs this person or record and FlytBase does not hold it.", whoCanTell: who(t), rule: "R-GAP-FILE: listed as not on file in the account profile.", cite: [r("profile.json")] }));
+  prof.not_on_file.forEach((t, i) => gaps.push({ id: `${A}-G-FILE-${i}`, question: t.replace(/\.$/, "") + "?", why: "The plan needs this person or record and FlytBase does not hold it.", whoCanTell: who(t), rule: "R-GAP-FILE: listed as not on file in the account profile.", cite: hasProfile(pack) ? [r("profile.json")] : a.opportunities.slice(0, 1).map((o) => o.id) }));
   claims.forEach((c) => gaps.push({ id: `${A}-G-CLAIM-${c.id}`, question: `Is it true that “${c.text.replace(/\.$/, "")}”?`, why: `Only ${c.said_by}'s word. Shown apart from the backed book until a file proves it.`, whoCanTell: c.id === "sr_roi_0" ? "Group finance (the workings) and plant managers" : c.id === "sr_roll_0" ? "Usage data says otherwise; ask plant managers" : c.id === "rc_appetite_0" ? "The force leads at Tarn Valley and Norwold" : c.id === "rc_funding_0" ? "Hannah Doyle / alliance finance" : "Insp. Karen Mbeki", rule: "R-GAP-CLAIM: a fact with status 'claim'.", cite: [c.id] }));
   a.opportunities.filter((o) => o.worth_up_to == null).forEach((o) => gaps.push({ id: `${A}-G-WORTH-${o.id}`, question: `What is “${o.title}” really worth, and who pays?`, why: "The deal is not qualified: no decider or payer met, so the game shows no worth.", whoCanTell: o.id.includes("tender") ? "Hannah Doyle" : o.id.includes("tarn") ? "Tarn Valley / Norwold force leads (via Karen Mbeki)" : o.id.includes("westmere") ? "Insp. Karen Mbeki → Westmere command" : o.id.includes("renewal") ? (A === "A" ? "Hannah Doyle + Schedule 2 from FlytBase Accounts" : "Group finance mailbox → named finance lead") : "Stefan Roy's deputy", rule: "R-GAP-WORTH: stage 'identified' with no worth.", cite: [o.id] }));
   a.deadlines.filter((d) => !d.passed).forEach((d, i) => gaps.push({ id: `${A}-G-DATE-${i}`, question: `When exactly: “${d.text.split(".")[0]}”?`, why: "A deadline with no date cannot be planned inside.", whoCanTell: A === "A" ? "Hannah Doyle (spec owner)" : "Beatriz Alonso / Stefan Roy", rule: "R-GAP-DATE: known deadline without a date.", cite: a.opportunities.filter((o) => o.deadline?.text === d.text).map((o) => o.id) }));

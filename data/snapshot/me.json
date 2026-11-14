@@ -1,7 +1,18 @@
 {
  "player_id": "0da5541f-bea0-4808-ba03-cbb252276cd5",
  "your_morning_over": true,
- "new_accounts": [],
+ "new_accounts": [
+  {
+   "id": "K",
+   "name": "Kestrel Estates",
+   "path": "/drops/K"
+  },
+  {
+   "id": "H",
+   "name": "Brindle Harbour Authority",
+   "path": "/drops/H"
+  }
+ ],
  "pack": [
   {
    "account": "A",
@@ -9,6 +20,14 @@
   },
   {
    "account": "B",
+   "open": true
+  },
+  {
+   "account": "K",
+   "open": true
+  },
+  {
+   "account": "H",
    "open": true
   }
  ],
@@ -27,6 +46,8 @@
   "/pack/release-notes",
   "/signals",
   "/schema",
-  "/notes (GET, POST)"
+  "/notes (GET, POST)",
+  "/drops/:id",
+  "/drops/:id/files/:fileId"
  ]
 }

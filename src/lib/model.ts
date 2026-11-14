@@ -36,7 +36,7 @@ export function mergeSignals(pack: RawPack, signals: RawSignal[]): RawPack {
   const records = pack.records.map((r) => ({ ...r }));
   for (const s of signals.filter((x) => x.account === pack.account)) {
     for (const r of s.records) {
-      const path = r.path.replace(/^[AB]\//, "");
+      const path = r.path.replace(/^[A-Z]\//, "");
       const existing = records.find((x) => x.path === path);
       if (existing && existing.text && path.endsWith(".csv")) {
         const have = new Set(existing.text.trim().split(/\r?\n/));
