@@ -6,6 +6,6 @@ import { LiveDesk } from "@/components/LiveDesk";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const { crm, version } = await getCrm({ tick: true });
+  const { crm, version } = await getCrm({ tick: false }); // only /api/crm drives the MCP scheduler
   return <LiveDesk initial={{ crm, version, sync: syncStatus() }} />;
 }
