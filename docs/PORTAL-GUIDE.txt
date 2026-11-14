@@ -1,0 +1,399 @@
+ACCOUNT DESK - PORTAL GUIDE
+Every section explained, for preparing
+the presentation.
+
+Link: https://account-desk-crm.onrender.com
+Open it 1 min early (free server wakes up).
+
+==================================
+THE BIG IDEA (say this if asked
+"what is this?")
+==================================
+I took over 2 accounts from Sam in the
+game (a police alliance and an industrial
+group). 2 more accounts arrived during the
+build. The CRM reads all the game data
+LIVE through the MCP connection and turns
+it into: what each account is worth, who
+decides, what to do first, what can go
+wrong, and what we still don't know.
+
+3 rules it follows everywhere:
+1. Every number has a source (click the
+   small tag next to it).
+2. Claims are never mixed with facts.
+3. Everything is ranked and dated, so you
+   know what to do on Monday.
+
+Data words used everywhere:
+- BACKED   = proven by a file (contract,
+             invoice, usage data)
+- TOLD     = a person said it
+- CLAIM    = someone said it but the data
+             does not prove it (may be wrong)
+- Stance   = how a person feels about us:
+             guarded / neutral / warm / ally
+
+==================================
+HEADER (top bar, always visible)
+==================================
+- Account date: the "today" inside the game
+  world (it moves when new events arrive).
+- MCP LIVE (green pill): the portal is
+  connected and pulling data itself.
+  Click it -> MCP panel (see below).
+- Sync button: asks for new live events
+  right now.
+- Cockpit button: full-screen live view.
+- "N to game": changes waiting to be
+  written back to the game.
+
+Ctrl+K = search anything (people, deals,
+risks, docks, records).
+? = keyboard shortcuts.
+
+==================================
+LEFT MENU - SECTION BY SECTION
+==================================
+
+----------------------------------
+1. PORTFOLIO  (key p)
+----------------------------------
+WHAT: The Monday-morning view of ALL
+accounts on one page.
+
+YOU SEE:
+- One card per account: health score,
+  renewal value (from the contract), days
+  until renewal, red risks, a bar of docks
+  (green = flying, amber = low, red =
+  stopped, grey = never flew).
+- "Sheet says" vs "Data says": what the
+  account sheet claims vs what the data
+  shows.
+- This week's first moves across all
+  accounts.
+- Live events as they arrive.
+
+HOW HEALTH IS CALCULATED (0-100):
+  50% usage (share of docks flying at
+      least 4 times in 4 weeks)
++ 25% relationships (average stance:
+      guarded 25, neutral 50, warm 75,
+      ally 100)
++ 25% support (minus 25 for every open
+      customer request with no owner)
+
+SAY: "Sheet says rollout is going well;
+data says only 17 of 35 docks fly."
+
+Money is kept in each contract's own
+currency (GBP for police, EUR for
+Aldermoor). It is never added across
+accounts.
+
+----------------------------------
+2. ACTION QUEUE  (key q)
+----------------------------------
+WHAT: The to-do list for all accounts.
+
+YOU SEE: every move with owner, due date,
+amount at stake, status.
+YOU CAN: change the owner, change the due
+date, mark Done, Snooze 3 days, open the
+Draft message.
+
+IMPORTANT: every change is written BACK to
+the game (write_note) and read back, so the
+game is the record, not my laptop.
+The tool allows 1 call per minute, so
+changes wait in a small queue ("N to game")
+and are sent one by one.
+
+----------------------------------
+3. RISK RADAR  (key r)
+----------------------------------
+WHAT: every risk from every account on one
+page, red first, then by the date it turns
+bad.
+
+Each risk shows the RULE that raised it,
+e.g.:
+- R-USAGE: many docks flew nothing in 4
+  weeks
+- R-DROP: busy docks suddenly stopped
+- R-OPEN: customer request with no owner
+- R-CHAMP: our main contact is leaving
+- R-RENEWAL: renewal close and deal not
+  ready
+- R-CLAIM: the story rests on claims
+- R-NOUSE: a key person never logs in
+
+----------------------------------
+4. ACCOUNTS (Eastern Counties, Aldermoor,
+   Brindle Harbour, Kestrel)  (keys 1-4)
+----------------------------------
+WHAT: one page per account. The heart of
+the CRM.
+
+TOP: "The account sheet says" vs "The data
+says", health score with its 3 parts,
+renewal value and countdown.
+
+THE FIVE QUESTIONS (strip of 5 boxes, and
+5 tabs):
+
+Q1  BOOK - What is it worth?
+    Deals in 2 groups:
+    - "Backed by a file" (contract, usage)
+    - "Shown apart" (claims, no value yet)
+    Example: renewal 350,000 GBP backed;
+    180,000 of it pays for 18 docks that
+    fly less than weekly (350,000 / 35 docks
+    = 10,000 per dock).
+
+Q2  POWER - Who holds the power?
+    For each deal: who DECIDES, PAYS, SIGNS,
+    USES, COULD BLOCK, CHAMPIONS, with
+    stance. Red dashed box = UNKNOWN person
+    we never met.
+
+Q3  FIRST MOVES - What do we do first?
+    Ranked list. Score =
+      money at stake x confidence
+      / (days left + 1)
+    so urgent things rise to the top.
+    Each move: owner, due date, deals it
+    moves, evidence tags, Done / Snooze /
+    Draft / Save to game.
+
+Q4  ABOUT TO GO WRONG - risks for this
+    account, with "turns bad on" date.
+
+Q5  UNKNOWNS - what we don't know, why it
+    matters, and WHO CAN TELL US.
+
+OTHER TABS:
+- FLEET: every dock: flying / low /
+  stopped / never flown, 12-week trend,
+  flags (connection drops, battery
+  warnings, sudden stop).
+- TIMELINE: calls, emails, tickets,
+  internal notes, live events, newest
+  first, searchable.
+- NOTES: write a note to the game and see
+  notes already written.
+
+----------------------------------
+5. ACCOUNT PLAN  (key a)
+----------------------------------
+WHAT: the PROACTIVE plan I would present
+to Neel (our CX manager). This answers the
+host's brief.
+
+PARTS:
+a) STORY SO FAR
+   Start (Sam's handover: what was open,
+   what was missing) -> what happened (deal
+   history, my morning, live events) -> Now.
+
+b) UNLOCK MAP
+   Each "play" is a chain:
+   deliver -> person -> usage -> proof ->
+   money -> expansion.
+   Example Tarn Valley:
+   deliver the missing document (FB-10412)
+   -> meet their drone lead
+   -> docks start flying (BLOCKED until the
+      document arrives)
+   -> prove value
+   -> THEN ask about their stadium.
+   Status of each step comes from live data,
+   so the plan updates by itself.
+
+c) FORCE BY FORCE (police) / PLANT GROUPS
+   For each: what we KNOW, what we can GIVE,
+   what we can BUILD.
+   Westmere: flying (14/18 docks).
+   Metro Central: fading.
+   Tarn Valley: not live.
+   Norwold: training only.
+
+d) THE PLAN in 3 horizons:
+   next 2 weeks / this quarter / 12 months.
+   Prerequisites first.
+
+Button: "Print plan for Neel".
+
+SAY: "Fix first, prove second, grow third."
+
+----------------------------------
+6. PLAYBOOK  (key y)
+----------------------------------
+WHAT: mistakes we made and will not repeat
+(and what worked), each with evidence and a
+rule for next time.
+Examples:
+- One person was the only door (single-
+  threaded) -> meet a user, payer and
+  decider at every site.
+- Customer requests had no owner -> owner
+  the same day, reply in 2 days.
+- Pitched more docks while docks were idle
+  -> fix, prove, then expand.
+- Champion is not the user (Stefan 0 logins)
+  -> also win the real operator.
+These lessons become WARNINGS on moves
+("don't pitch yet").
+Right side: a checklist for onboarding the
+NEXT account (e.g. a new police county).
+"Add a lesson" writes it to the game.
+
+----------------------------------
+7. NOTEBOOK  (key n)
+----------------------------------
+WHAT: the game's own notebook, rebuilt from
+the MCP, in the game's words.
+Tabs: Deals (with game steps: Heard of ->
+Blocker known -> Owner found -> Prepared ->
+Sent -> Agreed), Journal (what I learned,
+by minute), Who you met, Files, Deadlines,
+Rules.
+SAY: "This shows my journey in the game."
+
+----------------------------------
+8. DISCOVERY  (key d)
+----------------------------------
+WHAT: how good my discovery was (the host
+said insight matters more than closed
+deals).
+- Facts learned: verified / told / claim.
+- Stories tested: every claim checked
+  against files.
+  CONTRADICTED: "13 of 15 plants flying"
+  (data: 4 of 14 docks), "all four forces
+  keen" (Tarn Valley zero flights).
+  UNSUPPORTED: the 1.2M euro saving, "the
+  alliance has the budget", the stadium.
+- People unlocked and decision coverage
+  (did we meet who decides and who pays?).
+
+----------------------------------
+9. AI COPILOT  (key c)
+----------------------------------
+WHAT: ask questions in plain English.
+Uses Claude (Anthropic). It answers ONLY
+from this CRM's data and puts a source tag
+on every point. The app checks every tag:
+"N citations checked: all found" (green).
+Takes 5-20 seconds (it thinks first; a
+timer shows).
+Good demo question: "What should I do first
+on Monday, and why?"
+
+----------------------------------
+10. CHANGE LOG  (key l)
+----------------------------------
+WHAT: proof that it stays live.
+- Data changes from the MCP: what changed
+  in each pull (e.g. "Live events: 0 -> 3",
+  "new account H").
+- Live events and what they changed, with
+  before -> after lines, e.g. "Busy docks
+  that went silent: 0 -> 3".
+- MCP call log: every call, time, result.
+
+----------------------------------
+11. MONDAY BRIEF  (key b)
+----------------------------------
+WHAT: a printable one-pager for the
+manager: five answers per account, first
+moves, red risks, plays, gaps, all with
+source ids. Button: Print / PDF.
+
+==================================
+SPECIAL VIEWS
+==================================
+COCKPIT (key x): full screen, live: health
+gauges, renewal countdowns, next 6 moves on
+the clock, red risks, live MCP feed. Good
+opening shot. Esc to close.
+
+MCP PANEL (click the green pill): endpoint,
+token kept on the server, each data source
+with last pull / next pull, call log, Sync
+now button.
+
+SOURCE DRAWER: click any small tag next to
+a number -> the original record opens
+(contract, email, ticket, dock, fact).
+
+==================================
+HOW IT WORKS (if someone technical asks)
+==================================
+- Built with Next.js, hosted on Render.
+- The SERVER calls the game's MCP itself,
+  max 1 call per minute (the token's
+  limit), always the most overdue source:
+  live events every minute, accounts every
+  5 min, paperwork every 15 min.
+- Token and AI key stay on the server,
+  never in the browser.
+- New events are MERGED into the account
+  data (e.g. new usage weeks), so numbers
+  change by themselves.
+- The browser checks the server every 20
+  seconds and updates in place (no reload).
+- Rules are fixed code (no AI guessing for
+  numbers). AI is only the Copilot.
+- 24 automated tests check, among other
+  things, that no cited id is invented.
+
+==================================
+KEY NUMBERS TO REMEMBER
+==================================
+POLICE (Eastern Counties):
+- Renewal 350,000 GBP, ends 28 Feb 2027
+- 35 docks, about 17 fly regularly
+- 180,000 GBP pays for docks flying less
+  than weekly
+- Tarn Valley: 0 flights since May,
+  waiting on a document (FB-10412)
+- Rhys (main contact) leaves in January
+- Karen (ally) needs answers before the
+  5 December event
+
+ALDERMOOR:
+- Renewal 140,000 EUR, ends 31 Jan 2027
+- 14 docks, only 4 fly regularly
+- 3 busy docks stopped (AD-02, AD-05, AD-10)
+- Stefan claims 13 of 15 plants fly and a
+  1.2M euro saving: not backed by data
+- Finance asked for cost per plant, no
+  reply yet
+
+NEW ACCOUNTS (arrived mid-build):
+- Brindle Harbour (H): renewal blocked
+  because finance can't see the saving;
+  yard dock waits on privacy documents.
+- Kestrel Estates (K): dock can't fly: no
+  pilot, not commissioned, insurer not told.
+
+==================================
+ONE-LINE ANSWERS FOR Q&A
+==================================
+Why not just show all data?
+"A CRM is not a data dump. It shows what
+to do and why."
+
+How are moves ranked?
+"Money at stake x confidence, divided by
+days left."
+
+What if the data changes?
+"It pulls every minute and updates by
+itself. You saw new accounts appear."
+
+What doesn't it do yet?
+"No dock-to-site map (not in the data),
+and no login/permissions yet."
