@@ -68,3 +68,8 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - Discovery page (key d): engine `discoveryOf` adds facts by minute, claims tested (contradicted/unsupported), unlocks, people and decision coverage. Built for the host's secondary judging (insight and discovery weighted above deals).
 - Cockpit mode (key x / header button): full-screen live view (gauges, countdowns, moves on the clock, red risks, MCP feed).
 - 13 tests pass.
+
+## 14 Nov ~18:15: host's brief → proactive layer (commit b7957cf)
+- The host asked (Hinglish, transcribed by Durvesh) for: start point (Sam's handover) → what happened → now; "if I deliver doc X what unlocks (money / person)"; per-force know/give/build (Tarn Valley: document → fly → prove → ask about stadium); a 2-week/quarter/1-year plan to present to Neel; lessons ("mistakes not to repeat") reusable for future accounts (e.g. 7 police counties); reprioritise proactively. Durvesh: don't ask about building or deployment again; he'll say when to deploy.
+- Built: `src/lib/plan.ts` (story, unlock chains with live-derived status, segments from the flight log via get_file, horizons), `src/lib/lessons.ts` (lessons from history/morning/notes, guards, PLAYBOOK), pages AccountPlan (key a, printable for Neel) and Playbook (key y, "Add a lesson" → write_note "lesson: ..."). The Copilot context includes plays and lessons. 17 tests.
+- Live data began arriving around 16:00 IST: account date 18 Nov, signals champion_leaves + urgent_request back; the portal picked them up by itself.
