@@ -65,6 +65,10 @@ export async function mcpCall<T = unknown>(tool: string, args: Record<string, un
   }
 }
 
+// Fields that change on every call (timestamps) must not count as "new data".
+const VOLATILE = new Set(["exported_at", "minute", "generated_at", "now", "fetched_at"]);
+const stable = (d: unknown) => JSON.stringify(d, (k, v) => (VOLATILE.has(k) ? undefined : v));
+
 function hashOf(s: string) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
@@ -121,8 +125,8 @@ export async function tick(force?: string): Promise<{ called: string | null; cha
     try {
       const data = await guardedCall<unknown>(pick.tool, pick.args);
       const json = JSON.stringify(data);
-      const h = hashOf(json);
-      const snapJson = JSON.stringify(readSnapshot(pick.snapshot) ?? null);
+      const h = hashOf(stable(data));
+      const snapJson = stable(readSnapshot(pick.snapshot) ?? null);
       const prevHash = meta.hash || hashOf(snapJson);
       meta.fetchedAt = Date.now();
       meta.lastError = null;
