@@ -3,7 +3,7 @@
 // palette, keyboard shortcuts, and the outbox that writes every change back to the game.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { Bot, Building2, FileText, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
+import { Bot, Building2, Compass, FileText, Gauge, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
 import type { CrmView } from "@/lib/types";
 import type { SyncStatus } from "@/lib/sync";
 import { CiteProvider, fmtDate } from "./ui";
@@ -15,6 +15,8 @@ import { RiskRadar } from "./RiskRadar";
 import { ChangeLog } from "./ChangeLog";
 import { Brief } from "./Brief";
 import { Copilot } from "./Copilot";
+import { Discovery } from "./Discovery";
+import { Cockpit } from "./Cockpit";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { OpsProvider, OutboxChip, useOps } from "./ops";
 
@@ -39,6 +41,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
   const [panel, setPanel] = useState(false);
   const [palette, setPalette] = useState(false);
   const [help, setHelp] = useState(false);
+  const [cockpit, setCockpit] = useState(false);
   const now = useNow();
   const ops = useOps();
 
@@ -63,6 +66,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
     { id: "queue", label: "Action queue", icon: ListChecks, key: "q", badge: openMoves.length, badgeCls: overdue ? "bg-[var(--red-soft)] text-red" : undefined },
     { id: "risks", label: "Risk radar", icon: ShieldAlert, key: "r", badge: reds, badgeCls: "bg-[var(--red-soft)] text-red" },
     ...crm.accounts.map((a, i) => ({ id: a.id, label: shortName(a.name), icon: Building2, key: String(i + 1), badge: a.kpis.health.score, badgeCls: a.kpis.health.score < 40 ? "bg-[var(--red-soft)] text-red" : a.kpis.health.score < 65 ? "bg-[var(--amber-soft)] text-amber" : "bg-[var(--green-soft)] text-green", group: i === 0 ? "Accounts" : undefined })),
+    { id: "discovery", label: "Discovery", icon: Compass, key: "d", badge: crm.accounts.reduce((n, a) => n + a.discovery.counts.facts, 0) },
     { id: "copilot", label: "AI Copilot", icon: Bot, key: "c", group: "Assist" },
     { id: "log", label: "Change log", icon: History, key: "l", badge: sync.changes.length || undefined, group: "Live" },
     { id: "brief", label: "Monday brief", icon: FileText, key: "b" },
@@ -75,11 +79,13 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((p) => !p); return; }
       const t = e.target as HTMLElement;
       if (e.ctrlKey || e.metaKey || e.altKey || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) || t.isContentEditable) return;
+      if (cockpit) return;
       if (palette || help) { if (e.key === "Escape") { setPalette(false); setHelp(false); } return; }
       if (e.key === "?") { setHelp(true); return; }
       if (e.key === "/") { e.preventDefault(); setPalette(true); return; }
       if (e.key === "s") { onSync(); return; }
       if (e.key === "m") { setPanel((p) => !p); return; }
+      if (e.key === "x") { setCockpit(true); return; }
       const hit = nav.find((n) => n.key === e.key);
       if (hit) setView(hit.id);
     };
@@ -88,6 +94,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
   });
 
   const actions: PaletteItem[] = [
+    { id: "a-cockpit", group: "Actions", label: "Cockpit mode (full-screen live view)", hint: "key x", run: () => setCockpit(true) },
     { id: "a-ask", group: "Actions", label: "Ask the AI Copilot", hint: "key c", run: () => setView("copilot") },
     { id: "a-sync", group: "Actions", label: "Sync live events now (get_signals)", hint: "key s", run: onSync },
     { id: "a-mcp", group: "Actions", label: "Open the MCP connection panel", hint: "key m", run: () => setPanel(true) },
@@ -150,6 +157,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-2 text-xs text-muted">
               <span className="hidden items-center gap-1.5 lg:inline-flex"><span className="label !text-[9.5px]">Account date</span><span className="mono border border-line bg-panel px-1.5 py-0.5 text-[11px] text-text">{fmtDate(crm.asOf)}</span></span>
+              <button onClick={() => setCockpit(true)} title="Cockpit mode: full-screen live view (x)" className="mono flex items-center gap-1 border border-accent/60 px-2 py-1 text-[10.5px] uppercase tracking-wider text-accent hover:bg-[var(--accent-soft)]"><Gauge size={12} />Cockpit</button>
               <OutboxChip />
               <button onClick={() => setPanel(true)} title="MCP connection panel (m)" className={clsx("flex items-center gap-1.5 border px-2.5 py-1 transition hover:border-accent", live ? "border-green/35 bg-[var(--green-soft)]/50" : "border-amber/35 bg-[var(--amber-soft)]/40")}>
                 <PlugZap size={12} className={clsx(live ? "live-dot text-green" : "text-amber")} />
@@ -189,16 +197,18 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           {view === "risks" && <RiskRadar crm={crm} go={go} />}
           {view === "log" && <ChangeLog crm={crm} sync={sync} />}
           {view === "brief" && <Brief crm={crm} />}
+          {view === "discovery" && <Discovery crm={crm} />}
           {/* Kept mounted so an answer keeps streaming while you look at other pages. */}
           <div hidden={view !== "copilot"}><Copilot crm={crm} /></div>
           {current && <Account key={current.id} acc={current} crm={crm} />}
-          {!["P", "queue", "risks", "log", "brief", "copilot"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
+          {!["P", "queue", "risks", "log", "brief", "copilot", "discovery"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
         </main>
         <footer className="px-6 pb-8 pt-2 text-[11px] text-dim print:hidden">
           Every number carries the id it comes from: click any <span className="mono text-muted">▤ id</span> chip to open the record. Data: the portal&apos;s own MCP connection to Account Quest · Ctrl+K to search · ? for shortcuts.
         </footer>
       </div>
 
+      {cockpit && <Cockpit crm={crm} sync={sync} onClose={() => setCockpit(false)} onSync={onSync} />}
       {panel && <McpPanel sync={sync} onSync={onSync} syncing={syncing} syncMsg={syncMsg} lastPoll={lastPoll} pollEverySec={pollEverySec} onClose={() => setPanel(false)} />}
       <CommandPalette open={palette} onClose={() => setPalette(false)} crm={crm} views={nav.map((n) => ({ id: n.id, label: n.label, key: n.key }))} go={go} actions={actions} />
       {help && (
@@ -206,7 +216,7 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           <div className="w-[calc(100%-32px)] max-w-md border border-line bg-panel p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between"><div className="label">Keyboard shortcuts</div><button onClick={() => setHelp(false)} className="text-muted"><X size={15} /></button></div>
             <div className="mt-3 grid grid-cols-[80px_1fr] gap-y-1.5 text-sm">
-              {[["Ctrl K, /", "Search everything"], ...nav.map((n) => [n.key, n.label]), ["s", "Sync live events now"], ["m", "MCP connection panel"], ["Esc", "Close a drawer or dialog"], ["?", "This help"]].map(([k, l]) => (
+              {[["Ctrl K, /", "Search everything"], ...nav.map((n) => [n.key, n.label]), ["s", "Sync live events now"], ["x", "Cockpit mode"], ["m", "MCP connection panel"], ["Esc", "Close a drawer or dialog"], ["?", "This help"]].map(([k, l]) => (
                 <div key={k + l} className="contents"><kbd className="mono w-fit border border-line px-1.5 text-[11px] text-muted">{k}</kbd><span>{l}</span></div>
               ))}
             </div>

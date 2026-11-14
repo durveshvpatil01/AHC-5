@@ -116,3 +116,20 @@ describe("staying live", () => {
     expect(dateIn("no date here", "2026-12-03")).toBeNull();
   });
 });
+
+describe("discovery", () => {
+  it("tests every claim against the files and contradicts the two official stories", () => {
+    const crm = build();
+    const tested = crm.accounts.flatMap((a) => a.discovery.tested);
+    const claims = crm.accounts.flatMap((a) => a.discovery.facts.filter((f) => f.status === "claim"));
+    expect(tested).toHaveLength(claims.length);
+    expect(tested.filter((t) => t.verdict === "contradicted").map((t) => t.claimId).sort()).toEqual(["rc_appetite_0", "sr_roll_0"]);
+    expect(tested.flatMap((t) => t.cite).filter((id) => !crm.sources[id])).toEqual([]);
+  });
+
+  it("links each fact to the deals it unlocked", () => {
+    const A = build().accounts.find((a) => a.id === "A")!;
+    expect(A.discovery.facts.find((f) => f.id === "km_usage_1")!.unlocks).toContain("a_renewal");
+  });
+});
+

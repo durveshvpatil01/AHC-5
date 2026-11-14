@@ -173,6 +173,36 @@ export interface AccountView {
   timeline: TimelineItem[];
   signals: Signal[];
   answers: { book: string; power: string; first: string; wrong: string; unknown: string };
+  discovery: Discovery;
+}
+
+export interface DiscoveryFact {
+  id: string;
+  text: string;
+  saidBy: string;
+  status: "claim" | "told" | "verified";
+  verifiedBy: string | null;
+  minute: number | null;
+  unlocks: string[]; // deal ids that cite this fact as evidence
+}
+
+export interface TestedClaim {
+  claimId: string;
+  claim: string;
+  saidBy: string;
+  verdict: "contradicted" | "unsupported" | "open";
+  finding: string;
+  cite: string[];
+}
+
+export interface Discovery {
+  facts: DiscoveryFact[];
+  counts: { facts: number; verified: number; told: number; claim: number; people: number; peopleOnFileNotMet: number; notOnFile: number; files: number; deals: number; dealsWithEvidence: number; offersWon: number; offersDeclined: number };
+  tested: TestedClaim[];
+  files: { id: string; title: string }[];
+  coverage: { dealId: string; title: string; deciderMet: boolean; payerMet: boolean; evidence: number }[];
+  firstMinute: number | null;
+  lastMinute: number | null;
 }
 
 export interface CrmView {

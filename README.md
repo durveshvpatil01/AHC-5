@@ -19,6 +19,10 @@ It also has a **fleet health** view per dock, computed from weekly usage, flight
 - Write-back: **Save to game** on a move, or the Notes tab → `write_note` through the same connection.
 - `data/snapshot/` is only a cold-start fallback until each source's first live pull.
 
+## Discovery and Cockpit
+- **Discovery** (key `d`): what the morning found. Every fact, with who said it, the minute it was learned, whether it is a claim, told or verified, and which deals it unlocked. Each claim in the official story is tested against the files (e.g. "13 of 15 plants flying" against 4 of 14 docks active), and the page also shows the people unlocked and decision coverage (decider and payer met?).
+- **Cockpit mode** (key `x`): a full-screen live view, like the drone console's mission control. Health gauges, renewal countdowns, the next moves on the clock, red risks and the live MCP feed. It updates by itself.
+
 ## AI Copilot
 - `/api/copilot` streams an answer from Claude (`claude-opus-5-5`, Anthropic SDK), grounded on the live CRM view and every source record (`src/lib/copilot.ts`). The context is prompt-cached and only changes when the data version changes.
 - Rules for the model: answer only from the data, cite each fact with its `[id]`, never invent ids or people, keep GBP and EUR apart, and say what's missing and who could tell us.

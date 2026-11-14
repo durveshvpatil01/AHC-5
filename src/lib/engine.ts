@@ -396,6 +396,7 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
     dataStoryCite: [...usageCite, ...(A === "A" ? ["rc_appetite_2", "flight_log_force_month"] : ["sr_roll_0"])],
     kpis, deals, people, moves, risks, gaps, fleet: docks, weeks: fleet.weeks.slice(-12), timeline: timelineOf(pack, signals),
     signals: signals.map((s) => toSignal(s, [...impactOf(s.id, A), ...(deltas[s.id] ?? [])])), answers,
+    discovery: discoveryOf(a, deals, docks, prof, S, people.filter((p) => !p.met).length),
   };
 }
 
@@ -503,4 +504,55 @@ function applyTaskNotes(accounts: AccountView[], notes: CrmView["notes"], asOf: 
     a.moves.sort((x, y) => w(x) - w(y) || y.score.total - x.score.total).forEach((m, i) => (m.rank = i + 1));
     a.answers.first = a.moves.filter((m) => m.status === "open").slice(0, 3).map((m, i) => `${i + 1}. ${m.title} (${m.owner}, by ${m.due})`).join(" · ");
   }
+}
+
+/* ---------- discovery: what the morning found, and how well the stories were tested ---------- */
+function discoveryOf(a: RawAccount, deals: Deal[], docks: { status: string }[], prof: ReturnType<typeof profileOf>, S: Record<string, Source>, onFileNotMet: number): AccountView["discovery"] {
+  const facts = a.facts
+    .map((f) => ({
+      id: f.id, text: f.text, saidBy: f.said_by, status: f.status, verifiedBy: f.verified_by ?? null, minute: f.learned_at_minute ?? null,
+      unlocks: a.opportunities.filter((o) => o.evidence.includes(f.id)).map((o) => o.id),
+    }))
+    .sort((x, y) => (x.minute ?? 999) - (y.minute ?? 999));
+  const active = docks.filter((d) => d.status === "active").length;
+  const n = docks.length;
+  const tested = a.facts.filter((f) => f.status === "claim").map((f) => {
+    const base = { claimId: f.id, claim: f.text, saidBy: f.said_by };
+    const r = (p: string) => `${a.id}:${p}`;
+    if (f.id === "sr_roll_0") return { ...base, verdict: "contradicted" as const, finding: `Usage shows ${active} of ${n} docks flying at least weekly, not 13 of 15 plants.`, cite: [f.id, r("usage_weekly.csv")] };
+    if (f.id === "rc_appetite_0") return { ...base, verdict: "contradicted" as const, finding: "Karen says only Westmere and Metro Central fly operationally; the flight log shows Tarn Valley with zero live flights since May and Norwold training only.", cite: [f.id, "rc_appetite_2", "flight_log_force_month"] };
+    if (f.id === "sr_roi_0") return { ...base, verdict: "unsupported" as const, finding: "No workings were ever supplied, and the order form quotes no savings figure.", cite: [f.id, r("contract.txt"), r("emails/2026-07-16_stefan_savings.txt")] };
+    if (f.id === "rc_funding_0") return { ...base, verdict: "unsupported" as const, finding: "No finance contact at the alliance or any force is on file; the invoice split (Schedule 2) is not held by customer success.", cite: [f.id, r("profile.json"), r("invoices.json")] };
+    if (f.id === "rc_stadium_0") return { ...base, verdict: "unsupported" as const, finding: "Nothing in writing from Westmere or the alliance; no quote was issued.", cite: [f.id, r("deal_history.json"), r("internal_notes.json")] };
+    return { ...base, verdict: "open" as const, finding: "Not yet tested against a file.", cite: [f.id] };
+  });
+  const minutes = facts.map((f) => f.minute).filter((m): m is number => m != null);
+  const real = deals.filter((d) => d.kind !== "offer");
+  return {
+    facts,
+    counts: {
+      facts: facts.length,
+      verified: facts.filter((f) => f.status === "verified").length,
+      told: facts.filter((f) => f.status === "told").length,
+      claim: facts.filter((f) => f.status === "claim").length,
+      people: a.stakeholders.length,
+      peopleOnFileNotMet: onFileNotMet,
+      notOnFile: prof.not_on_file.length,
+      files: Object.values(S).filter((s) => s.kind === "file" && (s.meta ?? "").includes(`Account ${a.id}`)).length,
+      deals: a.opportunities.length,
+      dealsWithEvidence: a.opportunities.filter((o) => o.evidence.length > 0).length,
+      offersWon: a.offers.filter((o) => o.status === "won").length,
+      offersDeclined: a.offers.filter((o) => o.status !== "won").length,
+    },
+    tested,
+    files: Object.values(S).filter((s) => s.kind === "file" && (s.meta ?? "").includes(`Account ${a.id}`)).map((s) => ({ id: s.id, title: s.title })),
+    coverage: real.map((d) => ({
+      dealId: d.id, title: d.title,
+      deciderMet: d.seats.some((s) => (s.role === "decides" || s.role === "signs") && s.met),
+      payerMet: d.seats.some((s) => s.role === "pays" && s.met),
+      evidence: d.evidence.length,
+    })),
+    firstMinute: minutes.length ? Math.min(...minutes) : null,
+    lastMinute: minutes.length ? Math.max(...minutes) : null,
+  };
 }
