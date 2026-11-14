@@ -19,6 +19,15 @@ It also has a **fleet health** view per dock, computed from weekly usage, flight
 - Write-back: **Save to game** on a move, or the Notes tab → `write_note` through the same connection.
 - `data/snapshot/` is only a cold-start fallback until each source's first live pull.
 
+## Account plan and Playbook (the proactive layer)
+- **Account plan** (key `a`), printable for the CX manager:
+  - **Story so far**: Sam's handover (what was open, what was not on file) → what happened (deal history, the morning, live events) → now.
+  - **Unlock map**: plays as chains *deliver → person → usage → proof → money → expansion*. For example, Tarn Valley: deliver the FB-10412 documentation → meet its drone lead → first live flights (blocked until the document lands) → prove value → ask about its stadium/events.
+  - **Status from live data**: each step's status comes from the data (ticket open? force flying in the flight log? live event received?), so the plan moves on by itself.
+  - **Force by force / plant groups**: what we know, what we can give, what we can build.
+  - **The plan on three horizons** (next 2 weeks / this quarter / 12 months), prerequisites first.
+- **Playbook** (key `y`): every mistake and success from the handover history and the morning, with evidence, why it happened and the rule for next time. Lessons become **guards**: expansion moves get "don't pitch yet" warnings while docks are idle or blockers are open. There's a reusable checklist for the next account (e.g. a new police county), and "Add a lesson" writes it to the game.
+
 ## Discovery and Cockpit
 - **Discovery** (key `d`): what the morning found. Every fact, with who said it, the minute it was learned, whether it is a claim, told or verified, and which deals it unlocked. Each claim in the official story is tested against the files (e.g. "13 of 15 plants flying" against 4 of 14 docks active), and the page also shows the people unlocked and decision coverage (decider and payer met?).
 - **Cockpit mode** (key `x`): a full-screen live view, like the drone console's mission control. Health gauges, renewal countdowns, the next moves on the clock, red risks and the live MCP feed. It updates by itself.

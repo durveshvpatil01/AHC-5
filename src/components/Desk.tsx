@@ -3,7 +3,7 @@
 // palette, keyboard shortcuts, and the outbox that writes every change back to the game.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { Bot, Building2, Compass, FileText, Gauge, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
+import { BookOpenCheck, Bot, Building2, Compass, FileText, Gauge, Map as MapIcon, History, Keyboard, LayoutDashboard, ListChecks, Loader2, PlugZap, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
 import type { CrmView } from "@/lib/types";
 import type { SyncStatus } from "@/lib/sync";
 import { CiteProvider, fmtDate } from "./ui";
@@ -17,6 +17,8 @@ import { Brief } from "./Brief";
 import { Copilot } from "./Copilot";
 import { Discovery } from "./Discovery";
 import { Cockpit } from "./Cockpit";
+import { AccountPlan } from "./AccountPlan";
+import { Playbook } from "./Playbook";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { OpsProvider, OutboxChip, useOps } from "./ops";
 
@@ -66,6 +68,8 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
     { id: "queue", label: "Action queue", icon: ListChecks, key: "q", badge: openMoves.length, badgeCls: overdue ? "bg-[var(--red-soft)] text-red" : undefined },
     { id: "risks", label: "Risk radar", icon: ShieldAlert, key: "r", badge: reds, badgeCls: "bg-[var(--red-soft)] text-red" },
     ...crm.accounts.map((a, i) => ({ id: a.id, label: shortName(a.name), icon: Building2, key: String(i + 1), badge: a.kpis.health.score, badgeCls: a.kpis.health.score < 40 ? "bg-[var(--red-soft)] text-red" : a.kpis.health.score < 65 ? "bg-[var(--amber-soft)] text-amber" : "bg-[var(--green-soft)] text-green", group: i === 0 ? "Accounts" : undefined })),
+    { id: "plan", label: "Account plan", icon: MapIcon, key: "a", group: "Strategy" },
+    { id: "playbook", label: "Playbook", icon: BookOpenCheck, key: "y", badge: crm.accounts.reduce((n, a) => n + a.lessons.lessons.length, 0) },
     { id: "discovery", label: "Discovery", icon: Compass, key: "d", badge: crm.accounts.reduce((n, a) => n + a.discovery.counts.facts, 0) },
     { id: "copilot", label: "AI Copilot", icon: Bot, key: "c", group: "Assist" },
     { id: "log", label: "Change log", icon: History, key: "l", badge: sync.changes.length || undefined, group: "Live" },
@@ -198,10 +202,12 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           {view === "log" && <ChangeLog crm={crm} sync={sync} />}
           {view === "brief" && <Brief crm={crm} />}
           {view === "discovery" && <Discovery crm={crm} />}
+          {view === "plan" && <AccountPlan crm={crm} />}
+          {view === "playbook" && <Playbook crm={crm} />}
           {/* Kept mounted so an answer keeps streaming while you look at other pages. */}
           <div hidden={view !== "copilot"}><Copilot crm={crm} /></div>
           {current && <Account key={current.id} acc={current} crm={crm} />}
-          {!["P", "queue", "risks", "log", "brief", "copilot", "discovery"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
+          {!["P", "queue", "risks", "log", "brief", "copilot", "discovery", "plan", "playbook"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
         </main>
         <footer className="px-6 pb-8 pt-2 text-[11px] text-dim print:hidden">
           Every number carries the id it comes from: click any <span className="mono text-muted">▤ id</span> chip to open the record. Data: the portal&apos;s own MCP connection to Account Quest · Ctrl+K to search · ? for shortcuts.

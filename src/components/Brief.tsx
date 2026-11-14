@@ -44,6 +44,11 @@ export function Brief({ crm }: { crm: CrmView }) {
                   {reds.map((r) => <li key={r.id}>{r.title}: turns bad {r.turnsBadOn ? fmtDate(r.turnsBadOn) : "(date not on file)"} {ids(r.cite)}</li>)}
                 </ul>
               </li>
+              <li><b>Plays (unlock chains).</b>
+                <ul className="ml-4 mt-0.5 list-disc">
+                  {a.plan.chains.map((c) => { const next = c.steps.find((s) => s.status !== "done"); return <li key={c.id}>{c.title}: next, {next ? `${next.label} (${next.owner}, ${next.due ? fmtDate(next.due) : "no date"})` : "done"} → unlocks {c.unlocks} {ids([c.id])}</li>; })}
+                </ul>
+              </li>
               <li><b>5. Still unknown.</b>
                 <ul className="ml-4 mt-0.5 list-disc">
                   {a.gaps.slice(0, 3).map((g) => <li key={g.id}>{g.question} Ask: {g.whoCanTell}. {ids(g.cite)}</li>)}

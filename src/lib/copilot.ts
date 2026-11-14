@@ -16,6 +16,7 @@ Rules:
 - If the data does not answer the question, say so plainly, then say what is missing and who could tell us (use the gaps).
 - Keep money in each account's own currency and never add GBP and EUR together.
 - Be brief and practical, like a senior CSM briefing a colleague: lead with the answer in one or two sentences, then at most five short bullets. Use **bold** sparingly. No headings.
+- For plans, use the account plan's plays (unlock chains: deliver -> person -> usage -> proof -> money -> expansion) and horizons; respect the lessons and guards (e.g. do not recommend expansion while docks are idle or a blocker is open).
 - When asked to draft a message, write it ready to send, and fill blanks only with facts from SOURCES; leave [brackets-in-caps] like [DATE] for anything not on file.`;
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + " …" : s);
@@ -44,6 +45,14 @@ export function buildContext(crm: CrmView): string {
     gaps: a.gaps.map((g) => ({ question: g.question, why: g.why, who_can_tell: g.whoCanTell, cite: g.cite })),
     docks_needing_attention: a.fleet.filter((d) => d.status !== "active" || d.flags.length).map((d) => ({ id: d.dockId, status: d.status, last4: d.last4, prev4: d.prev4, total: d.total, last_flight: d.lastFlight, flags: d.flags })),
     live_events: a.signals.map((s) => ({ id: s.id, dated: s.dated, title: s.title, summary: s.summary, impact: s.impact })),
+    account_plan: {
+      headline: a.plan.headline,
+      plays: a.plan.chains.map((c) => ({ id: c.id, title: c.title, why: c.why, unlocks: c.unlocks, upside: c.upside, value: c.value, steps: c.steps.map((st) => ({ id: st.id, kind: st.kind, label: st.label, status: st.status, owner: st.owner, due: st.due })) })),
+      segments: a.plan.segments.map((g) => ({ name: g.name, state: g.state, docks: g.docks, live: g.live, missions: g.missions, know: g.know, give: g.give, build: g.build })),
+      horizons: a.plan.plan.map((x) => ({ horizon: x.horizon, step: x.stepId, title: x.title, owner: x.owner, due: x.due, status: x.status })),
+    },
+    lessons: a.lessons.lessons.map((l) => ({ id: l.id, kind: l.kind, title: l.title, rule: l.rule })),
+    guards: a.lessons.guards,
   }));
   const sources = Object.values(crm.sources)
     .map((s) => `### [${s.id}] (${s.kind}) ${s.title}\n${s.meta ? s.meta + "\n" : ""}${clip(s.text, 2400)}`)

@@ -41,6 +41,9 @@ export function sources(): SourceDef[] {
     { key: "pack_B", tool: "get_all_paperwork", args: { account: "B" }, everySec: 900, snapshot: "pack_B.json", label: "Paperwork, account B" },
   ];
   for (const id of store.extraPacks) base.push({ key: `pack_${id}`, tool: "get_all_paperwork", args: { account: id }, everySec: 900, snapshot: `pack_${id}.json`, label: `Paperwork, account ${id}` });
+  // Data-room files the player holds (e.g. the flight log by force), pulled with get_file.
+  const exp = (store.data["accounts"] ?? readSnapshot("export.json")) as { files?: { id: string; title: string }[] } | null;
+  for (const f of exp?.files ?? []) base.push({ key: `file_${f.id}`, tool: "get_file", args: { id: f.id }, everySec: 3600, snapshot: `file_${f.id}.json`, label: `File: ${f.title}` });
   return base;
 }
 

@@ -420,6 +420,7 @@ export function MoveRow({ m: raw, account, tag, expanded, acc }: { m: Move; acco
           {m.why} · stake {fmtMoney({ amount: m.score.stake, currency: m.score.currency })} × confidence {m.score.confidence}
         </div>
         <div className="mt-1.5"><Cite ids={m.cite} max={expanded ? 6 : 3} /></div>
+        {(m.warnings ?? []).map((w, i) => <div key={i} className="mt-1.5 border-l-2 border-amber pl-2 text-[11.5px] text-amber">Lesson: {w}</div>)}
         <div className="mt-2"><MoveActions m={raw} account={account} acc={acc} /></div>
       </div>
     </div>

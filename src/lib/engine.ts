@@ -5,6 +5,8 @@ import {
   type RawAccount, type RawExport, type RawPack, type RawSignal,
 } from "./model";
 import { attachDrafts } from "./drafts";
+import { buildPlan } from "./plan";
+import { lessonsFor } from "./lessons";
 import type { AccountView, CrmView, Deal, Gap, Kpis, Money, Move, PowerSeat, Risk, Source, Stance } from "./types";
 
 export interface RawInput {
@@ -14,6 +16,7 @@ export interface RawInput {
   notes: CrmView["notes"];
   team: CrmView["team"];
   sync: CrmView["sync"];
+  files?: Record<string, unknown>; // data-room files pulled with get_file, by file id
 }
 
 const STANCE_SCORE: Record<Stance, number> = { guarded: 25, neutral: 50, warm: 75, ally: 100, unknown: 0 };
@@ -45,6 +48,27 @@ export function buildCrm(input: RawInput): CrmView {
 
   applyTaskNotes(accounts, input.notes, asOf);
   attachDrafts(accounts);
+  // Strategy layer: story, unlock chains, segments, plan horizons, lessons and guards.
+  for (const acc of accounts) {
+    // Deals the engine builds from paperwork (e.g. the sister company, on file only) are citable too.
+    for (const d of acc.deals) if (!sources[d.id]) sources[d.id] = { id: d.id, kind: "deal", title: d.title, text: `Stage: ${d.stage}. ${d.value.note ?? ""}
+Blocker: ${d.blocker ?? "none"}
+Next: ${d.next}
+Evidence: ${d.value.cite.join(", ")}`, meta: `Account ${acc.id} · built from the paperwork` };
+    const raw = rawAccounts.find((x) => x.id === acc.id)!;
+    const pack = packs.find((p) => p.account === acc.id)!;
+    acc.plan = buildPlan(raw, pack, signals.filter((s) => s.account === acc.id), acc, asOf, input.files ?? {});
+    acc.lessons = lessonsFor(raw, pack, acc, input.notes);
+    for (const g of acc.lessons.guards) {
+      const m = acc.moves.find((x) => x.id === g.appliesTo);
+      if (m) m.warnings = [...(m.warnings ?? []), `${g.lessonId}: ${g.warning}`];
+    }
+    for (const l of acc.lessons.lessons) sources[l.id] = { id: l.id, kind: "lesson", title: `${l.kind === "worked" ? "What worked" : "Lesson"}: ${l.title}`, text: `${l.whatHappened}\n\nWhy: ${l.why}\nRule next time: ${l.rule}\nEvidence: ${l.cite.join(", ") || "CSM note"}`, meta: `Account ${acc.id} · ${l.source}` };
+    for (const c of acc.plan.chains) {
+      sources[c.id] = { id: c.id, kind: "play", title: `Play: ${c.title}`, text: `${c.why}\n\nUnlocks: ${c.unlocks}${c.upside ? `\nUpside: ${c.upside}` : ""}\n\n${c.steps.map((s, i) => `${i + 1}. [${s.status}] ${s.label} (${s.kind}) · ${s.owner} · ${s.due ?? "no date"}`).join("\n")}`, meta: `Account ${acc.id} · unlock chain` };
+      for (const s of c.steps) sources[s.id] = { id: s.id, kind: "step", title: `${c.title} · step: ${s.label}`, text: `${s.detail}\n\nStatus: ${s.status} · ${s.kind} · owner ${s.owner} · due ${s.due ?? "no date"}\nEvidence: ${s.cite.join(", ") || "none"}`, meta: `Account ${acc.id} · play ${c.id}` };
+    }
+  }
   // Moves, risks and gaps are sources too, so the Copilot (and any chip) can cite and open them.
   for (const a of accounts) {
     for (const m of a.moves) sources[m.id] = { id: m.id, kind: "move", title: `Move #${m.rank}: ${m.title}`, text: `${m.detail}
@@ -397,6 +421,8 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
     kpis, deals, people, moves, risks, gaps, fleet: docks, weeks: fleet.weeks.slice(-12), timeline: timelineOf(pack, signals),
     signals: signals.map((s) => toSignal(s, [...impactOf(s.id, A), ...(deltas[s.id] ?? [])])), answers,
     discovery: discoveryOf(a, deals, docks, prof, S, people.filter((p) => !p.met).length),
+    plan: { story: { start: [], events: [], now: [] }, chains: [], segments: [], plan: [], headline: "" },
+    lessons: { lessons: [], guards: [] },
   };
 }
 

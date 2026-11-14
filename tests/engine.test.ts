@@ -11,7 +11,8 @@ const exp = fx<RawExport>("export.json");
 const packs = [fx<RawPack>("pack_A.json"), fx<RawPack>("pack_B.json")];
 const signals = fx<{ signals: RawSignal[] }>("signals.json").signals;
 const sync = { export: { source: "test", at: "" }, signals: { source: "test", at: "", count: 0 }, notes: { source: "test", at: "", count: 0 } };
-const build = (over: Partial<Parameters<typeof buildCrm>[0]> = {}) => buildCrm({ exp, packs, signals, notes: [], team: [], sync, ...over });
+const files = { flight_log_force_month: fx<unknown>("file_flight_log_force_month.json") };
+const build = (over: Partial<Parameters<typeof buildCrm>[0]> = {}) => buildCrm({ exp, packs, signals, notes: [], team: [], sync, files, ...over });
 
 /** Every id cited anywhere in the CRM view. */
 function allCites(crm: ReturnType<typeof build>) {
@@ -130,6 +131,40 @@ describe("discovery", () => {
   it("links each fact to the deals it unlocked", () => {
     const A = build().accounts.find((a) => a.id === "A")!;
     expect(A.discovery.facts.find((f) => f.id === "km_usage_1")!.unlocks).toContain("a_renewal");
+  });
+});
+
+describe("account plan and lessons", () => {
+  it("reads each force from the flight log, skipping the re-sent blank row", () => {
+    const A = build().accounts.find((a) => a.id === "A")!;
+    const seg = Object.fromEntries(A.plan.segments.map((g) => [g.name, g]));
+    expect(seg["Westmere"]).toMatchObject({ docks: 18, live: 14, missions: 126, state: "flying" });
+    expect(seg["Tarn Valley"].state).toBe("not live");
+    expect(seg["Norwold"].state).toBe("training only");
+  });
+
+  it("Tarn Valley's play: the document comes first and flying stays blocked until it is delivered", () => {
+    const A = build().accounts.find((a) => a.id === "A")!;
+    const tarn = A.plan.chains.find((c) => c.id === "A-C-TARN")!;
+    expect(tarn.steps[0]).toMatchObject({ kind: "deliver", status: "open" });
+    expect(tarn.steps.find((s) => s.kind === "usage")!.status).toBe("blocked");
+    expect(A.plan.plan.find((p) => p.stepId === "A-S-TARN-1")!.horizon).toBe("2w");
+  });
+
+  it("every citation in the plan and the lessons resolves", () => {
+    const crm = build();
+    const ids = crm.accounts.flatMap((a) => [
+      ...a.plan.chains.flatMap((c) => [...c.cite, ...c.value.cite, ...c.steps.flatMap((s) => s.cite)]),
+      ...a.plan.segments.flatMap((g) => g.cite),
+      ...a.lessons.lessons.flatMap((l) => [l.id, ...l.cite]),
+    ]);
+    expect([...new Set(ids)].filter((id) => !crm.sources[id])).toEqual([]);
+  });
+
+  it("the early expansion pitch becomes a lesson and a guard on expansion moves", () => {
+    const B = build().accounts.find((a) => a.id === "B")!;
+    expect(B.lessons.lessons.some((l) => l.id === "B-L-EXPAND")).toBe(true);
+    expect(B.moves.find((m) => m.id === "B-M-SAVINGS")!.warnings?.[0]).toMatch(/Don't pitch yet/);
   });
 });
 

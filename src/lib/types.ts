@@ -1,3 +1,5 @@
+import type { AccountPlan } from "./plan";
+import type { Guard, Lesson } from "./lessons";
 // Contract between the data engine (src/lib) and the UI (src/components). Plain JSON, safe to send to the client.
 
 export type Stance = "guarded" | "neutral" | "warm" | "ally" | "unknown";
@@ -63,6 +65,7 @@ export interface Move {
   plannedDue: string;
   history: { at: string; text: string; noteId: string }[]; // task updates read back from the game (list_notes)
   draft?: Draft;
+  warnings?: string[]; // lessons applied: e.g. "don't pitch yet"
 }
 
 export interface Draft {
@@ -174,6 +177,8 @@ export interface AccountView {
   signals: Signal[];
   answers: { book: string; power: string; first: string; wrong: string; unknown: string };
   discovery: Discovery;
+  plan: AccountPlan;
+  lessons: { lessons: Lesson[]; guards: Guard[] };
 }
 
 export interface DiscoveryFact {

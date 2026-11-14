@@ -20,6 +20,11 @@ export async function getCrm(opts: { tick?: boolean } = { tick: true }): Promise
     .filter((s) => s.key.startsWith("pack_"))
     .map((s) => getSource<RawPack>(s.key, s.snapshot).data)
     .filter((p): p is RawPack => !!p?.records);
+  const files: Record<string, unknown> = {};
+  for (const s of sources().filter((x) => x.key.startsWith("file_"))) {
+    const got = getSource<unknown>(s.key, s.snapshot);
+    if (got.data != null) files[String(s.args.id)] = got.data;
+  }
   const team = (readSnapshot<{ people: CrmView["team"] }>("team.json")?.people ?? []).map((p) => ({ id: p.id, name: p.name, role: p.role }));
   const signals = sig.data?.signals ?? [];
 
@@ -29,6 +34,7 @@ export async function getCrm(opts: { tick?: boolean } = { tick: true }): Promise
     signals,
     notes: (notes.data?.notes ?? []).map((n) => ({ id: String(n.id), account: n.account, kind: n.kind, title: n.title, text: n.text, at: n.created_at ? n.created_at.slice(0, 16).replace("T", " ") : n.at })),
     team,
+    files,
     sync: {
       export: { source: exp.source, at: exp.fetchedAt ?? "" },
       signals: { source: sig.source, at: sig.fetchedAt ?? "", count: signals.length },
