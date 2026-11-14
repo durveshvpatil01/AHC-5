@@ -19,8 +19,10 @@ const until = (iso: string | null, now: number) => {
 };
 
 export function useNow(ms = 1000) {
-  const [now, setNow] = useState(() => Date.now());
+  // 0 until mounted, so server and first client render match (no hydration mismatch).
+  const [now, setNow] = useState(0);
   useEffect(() => {
+    setNow(Date.now());
     const h = setInterval(() => setNow(Date.now()), ms);
     return () => clearInterval(h);
   }, [ms]);

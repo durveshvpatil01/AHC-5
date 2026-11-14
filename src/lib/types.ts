@@ -58,6 +58,19 @@ export interface Move {
   score: { stake: number; currency: string; daysLeft: number; confidence: number; total: number };
   cite: string[];
   noteText: string; // what we write back with write_note
+  status: "open" | "done" | "snoozed";
+  plannedOwner: string; // what the rules proposed (owner may be reassigned)
+  plannedDue: string;
+  history: { at: string; text: string; noteId: string }[]; // task updates read back from the game (list_notes)
+  draft?: Draft;
+}
+
+export interface Draft {
+  channel: "email" | "internal" | "call";
+  to: string;
+  subject: string;
+  body: string;
+  cite: string[];
 }
 
 export interface Risk {

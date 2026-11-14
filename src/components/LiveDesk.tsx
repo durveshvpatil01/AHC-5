@@ -78,6 +78,7 @@ export function LiveDesk({ initial }: { initial: LiveState }) {
       syncMsg={syncMsg}
       lastPoll={lastPoll}
       pollEverySec={POLL_MS / 1000}
+      onRefresh={poll}
     />
   );
 }

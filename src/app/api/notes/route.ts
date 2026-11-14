@@ -1,5 +1,5 @@
 // Write a note / task / risk / next_step back to the game through the portal's MCP connection (write_note).
-import { guardedCall, noteWritten, secondsUntilNextCall } from "@/lib/sync";
+import { guardedCall, noteWritten, reserveForWrite, secondsUntilNextCall } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,10 @@ export async function POST(req: Request) {
   const text = (body.text ?? "").toString().slice(0, 2000).trim();
   if (!text) return Response.json({ ok: false, error: "Text is required" }, { status: 400 });
   const wait = secondsUntilNextCall();
-  if (wait > 0) return Response.json({ ok: false, waitSec: wait, error: `One MCP call a minute: try again in ${wait}s.` }, { status: 429 });
+  if (wait > 0) {
+    reserveForWrite(wait + 20);
+    return Response.json({ ok: false, waitSec: wait, error: `One MCP call a minute: try again in ${wait}s.` }, { status: 429 });
+  }
   const args: Record<string, unknown> = { text, kind: KINDS.has(body.kind ?? "") ? body.kind : "note" };
   if (body.account && /^[A-Z]$/.test(body.account)) args.account = body.account;
   if (body.title) args.title = body.title.toString().slice(0, 120);

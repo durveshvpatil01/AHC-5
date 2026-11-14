@@ -1,8 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { Check, Loader2, Send, Search, AlertTriangle } from "lucide-react";
+import { Loader2, Search, AlertTriangle } from "lucide-react";
 import type { AccountView, CrmView, Move, Deal, Level } from "@/lib/types";
+import { MoveActions, StatusPill, useOps } from "./ops";
 import {
   AnswerBanner,
   Bar,
@@ -374,7 +375,7 @@ function FirstMoves({ acc }: { acc: AccountView }) {
           <>
             <div className="divide-y divide-line">
               {shown.map((m) => (
-                <MoveRow key={m.id} m={m} account={acc.id} expanded />
+                <MoveRow key={m.id} m={m} account={acc.id} acc={acc} expanded />
               ))}
             </div>
             <ShowAllToggle shown={showAll} total={acc.moves.length} onToggle={() => setShowAll((v) => !v)} label="moves" />
@@ -385,48 +386,20 @@ function FirstMoves({ acc }: { acc: AccountView }) {
   );
 }
 
-export function MoveRow({ m, account, tag, expanded }: { m: Move; account: string; tag?: string; expanded?: boolean }) {
-  const [state, setState] = useState<"idle" | "busy" | "done" | "err">("idle");
-  const [err, setErr] = useState("");
-  const save = async () => {
-    setState("busy");
-    try {
-      const r = await fetch("/api/notes", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          account,
-          kind: "next_step",
-          title: m.title,
-          text: `${m.noteText} Owner: ${m.owner}. Due: ${m.due}. Deals: ${m.dealIds.join(", ")}. Evidence: ${m.cite.join(", ")}.`,
-        }),
-      });
-      const j = await r.json();
-      if (j.ok) setState("done");
-      else {
-        setErr(j.error);
-        setState("err");
-      }
-    } catch (e) {
-      setErr(String(e));
-      setState("err");
-    }
-  };
-  const late = m.score.daysLeft <= 1;
+export function MoveRow({ m: raw, account, tag, expanded, acc }: { m: Move; account: string; tag?: string; expanded?: boolean; acc?: AccountView }) {
+  const ops = useOps();
+  const m = ops.apply(raw);
+  const late = m.status === "open" && m.score.daysLeft <= 1;
   return (
-    <div className="flex flex-wrap gap-3 py-3.5 first:pt-0 last:pb-0 sm:flex-nowrap sm:gap-4">
-      <div
-        className={clsx(
-          "mono flex h-8 w-8 shrink-0 items-center justify-center border text-sm font-medium",
-          m.rank <= 3 ? "border-accent bg-accent text-black" : "border-line text-muted"
-        )}
-      >
-        {m.rank}
+    <div className={clsx("flex flex-wrap gap-3 py-3.5 first:pt-0 last:pb-0 sm:flex-nowrap sm:gap-4", m.status !== "open" && "opacity-60")}>
+      <div className={clsx("mono flex h-8 w-8 shrink-0 items-center justify-center border text-sm font-medium", m.status === "done" ? "border-green/50 text-green" : m.rank <= 3 && m.status === "open" ? "border-accent bg-accent text-black" : "border-line text-muted")}>
+        {m.status === "done" ? "✓" : m.rank}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {tag && <Pill level="amber">Acct {tag}</Pill>}
-          <span className="font-medium">{m.title}</span>
+          <span className={clsx("font-medium", m.status === "done" && "line-through decoration-dim")}>{m.title}</span>
+          {m.status !== "open" && <StatusPill status={m.status} />}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs">
           <span>
@@ -447,27 +420,7 @@ export function MoveRow({ m, account, tag, expanded }: { m: Move; account: strin
           {m.why} · stake {fmtMoney({ amount: m.score.stake, currency: m.score.currency })} × confidence {m.score.confidence}
         </div>
         <div className="mt-1.5"><Cite ids={m.cite} max={expanded ? 6 : 3} /></div>
-      </div>
-      <div className="shrink-0">
-        <button
-          onClick={save}
-          disabled={state === "busy" || state === "done"}
-          title="Write this as a next_step note into the game (write_note)"
-          className={clsx(
-            "mono flex items-center gap-1.5 border px-2.5 py-1.5 text-[10.5px] uppercase tracking-wider transition",
-            state === "done"
-              ? "border-green/50 bg-[var(--green-soft)] text-green"
-              : state === "err"
-              ? "border-red/50 bg-[var(--red-soft)] text-red"
-              : state === "busy"
-              ? "border-accent/50 text-accent opacity-80"
-              : "border-line text-muted hover:border-accent hover:text-accent"
-          )}
-        >
-          {state === "busy" ? <Loader2 size={12} className="animate-spin" /> : state === "done" ? <Check size={12} /> : <Send size={12} />}
-          {state === "busy" ? "Saving…" : state === "done" ? "Saved" : state === "err" ? "Retry" : "Save to game"}
-        </button>
-        {state === "err" && <div className="mt-1 max-w-[160px] text-[10.5px] text-red">{err}</div>}
+        <div className="mt-2"><MoveActions m={raw} account={account} acc={acc} /></div>
       </div>
     </div>
   );

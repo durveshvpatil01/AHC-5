@@ -4,6 +4,7 @@ import {
   addDays, buildSources, daysBetween, fleetStats, mergeSignals, peopleOf, profileOf, hasProfile, rec, recCsv, recData, timelineOf, toSignal,
   type RawAccount, type RawExport, type RawPack, type RawSignal,
 } from "./model";
+import { attachDrafts } from "./drafts";
 import type { AccountView, CrmView, Deal, Gap, Kpis, Money, Move, PowerSeat, Risk, Source, Stance } from "./types";
 
 export interface RawInput {
@@ -42,7 +43,8 @@ export function buildCrm(input: RawInput): CrmView {
   const sources = buildSources(exp, packs, signals, Object.fromEntries(Object.entries(fleets).map(([k, v]) => [k, v.docks])));
   const accounts = rawAccounts.map((a) => buildAccount(a, packs.find((p) => p.account === a.id)!, signals.filter((s) => s.account === a.id), fleets[a.id], asOf, sources, deltas));
 
-  // Global rank across the portfolio (urgency first, then stake).
+  applyTaskNotes(accounts, input.notes, asOf);
+  attachDrafts(accounts);
   return {
     asOf,
     generatedAt: new Date().toISOString(),
@@ -287,11 +289,11 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
 
   /* ---------------- moves (Q3) ---------------- */
   const moves: Move[] = [];
-  const mk = (m: Omit<Move, "rank" | "score"> & { stake: number; currency: string; confidence: number }): void => {
+  const mk = (m: Omit<Move, "rank" | "score" | "status" | "plannedOwner" | "plannedDue" | "history" | "draft"> & { stake: number; currency: string; confidence: number }): void => {
     const daysLeft = Math.max(daysBetween(asOf, m.due), 0);
     const total = (m.stake * m.confidence) / (daysLeft + 1);
     const { stake, currency, confidence, ...rest } = m;
-    moves.push({ ...rest, rank: 0, score: { stake, currency, daysLeft, confidence, total } });
+    moves.push({ ...rest, rank: 0, score: { stake, currency, daysLeft, confidence, total }, status: "open", plannedOwner: rest.owner, plannedDue: rest.due, history: [] });
   };
   const due = (days: number, cap?: string) => { const d = addDays(asOf, days); return cap && d > cap ? cap : d; };
 
@@ -443,4 +445,43 @@ export function dateIn(text: string, dated: string): string | null {
   const iso = `${y}-${String(mm).padStart(2, "0")}-${String(Number(m[1])).padStart(2, "0")}`;
   if (iso < dated) y += 1;
   return `${y}-${iso.slice(5)}`;
+}
+
+/* ---------- tasks: the to-do state lives in the game, as notes we wrote with write_note ---------- */
+// A task update is a note titled "task:<moveId>" whose text holds key=value pairs, e.g.
+// "status=done; owner=Pranjal Suyal; due=2026-12-04; by=CSM". The latest update per move wins.
+export function parseTaskNote(n: { title?: string; text: string }): { moveId: string; fields: Record<string, string> } | null {
+  const m = (n.title ?? "").match(/^task:([\w-]+)/);
+  if (!m) return null;
+  const fields: Record<string, string> = {};
+  for (const part of n.text.split(/;\s*/)) {
+    const kv = part.match(/^\s*(\w+)\s*=\s*(.+?)\s*$/);
+    if (kv) fields[kv[1].toLowerCase()] = kv[2];
+  }
+  return { moveId: m[1], fields };
+}
+
+function applyTaskNotes(accounts: AccountView[], notes: CrmView["notes"], asOf: string) {
+  const sorted = [...notes].sort((a, b) => String(a.at ?? "").localeCompare(String(b.at ?? "")));
+  for (const n of sorted) {
+    const t = parseTaskNote(n);
+    if (!t) continue;
+    const mv = accounts.flatMap((a) => a.moves).find((m) => m.id === t.moveId);
+    if (!mv) continue;
+    const f = t.fields;
+    if (f.status === "done" || f.status === "open" || f.status === "snoozed") mv.status = f.status;
+    if (f.owner) mv.owner = f.owner;
+    if (f.due && /^\d{4}-\d{2}-\d{2}$/.test(f.due)) mv.due = f.due;
+    mv.history.push({ at: String(n.at ?? ""), text: n.text, noteId: String(n.id ?? "") });
+  }
+  // Re-rank: open moves by score (with any new due date); done and snoozed go to the bottom.
+  for (const a of accounts) {
+    for (const m of a.moves) {
+      const daysLeft = Math.max(daysBetween(asOf, m.due), 0);
+      m.score = { ...m.score, daysLeft, total: (m.score.stake * m.score.confidence) / (daysLeft + 1) };
+    }
+    const w = (m: Move) => (m.status === "open" ? 0 : m.status === "snoozed" ? 1 : 2);
+    a.moves.sort((x, y) => w(x) - w(y) || y.score.total - x.score.total).forEach((m, i) => (m.rank = i + 1));
+    a.answers.first = a.moves.filter((m) => m.status === "open").slice(0, 3).map((m, i) => `${i + 1}. ${m.title} (${m.owner}, by ${m.due})`).join(" · ");
+  }
 }

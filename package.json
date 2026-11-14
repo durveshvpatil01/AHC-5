@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:claude": "set NEXT_DIST_DIR=.next-claude&& next dev -p 3101"
   },
   "dependencies": {
     "clsx": "^2.1.1",

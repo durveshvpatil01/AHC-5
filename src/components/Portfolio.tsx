@@ -129,7 +129,7 @@ export function Portfolio({ crm, go, newSignalIds }: { crm: CrmView; go: (k: str
             <>
               <div className="divide-y divide-line">
                 {moves.map((m) => (
-                  <MoveRow key={m.id} m={m} account={m.acc} tag={m.acc} />
+                  <MoveRow key={m.id} m={m} account={m.acc} tag={m.acc} acc={crm.accounts.find((a) => a.id === m.acc)} />
                 ))}
               </div>
               <ShowAllToggle shown={showAllMoves} total={allMoves.length} onToggle={() => setShowAllMoves((v) => !v)} label="moves" />

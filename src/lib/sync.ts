@@ -11,11 +11,14 @@ const MIN_GAP_MS = 61_000;
 export interface SourceDef { key: string; tool: string; args: Record<string, unknown>; everySec: number; snapshot: string; label: string }
 export interface SourceState { key: string; tool: string; label: string; everySec: number; source: "live" | "snapshot" | "none"; fetchedAt: string | null; changedAt: string | null; lastError: string | null; nextDueAt: string | null; bytes: number }
 export interface CallLog { at: string; tool: string; args: string; ok: boolean; ms: number; note: string }
+export interface ChangeEntry { at: string; source: string; tool: string; lines: string[] }
 
 interface Store {
   data: Record<string, unknown>;
   meta: Record<string, { fetchedAt: number | null; changedAt: number | null; lastError: string | null; hash: string; bytes: number }>;
   log: CallLog[];
+  changes: ChangeEntry[];
+  writeReservedUntil?: number;
   lastCallAt: number;
   version: number;
   extraPacks: string[];
@@ -24,7 +27,8 @@ interface Store {
 }
 
 const g = globalThis as unknown as { __aqStore?: Store };
-const store: Store = (g.__aqStore ??= { data: {}, meta: {}, log: [], lastCallAt: 0, version: 1, extraPacks: [], inflight: null, bootAt: Date.now() });
+const store: Store = (g.__aqStore ??= { data: {}, meta: {}, log: [], changes: [], lastCallAt: 0, version: 1, extraPacks: [], inflight: null, bootAt: Date.now() });
+store.changes ??= [];
 
 export function sources(): SourceDef[] {
   const base: SourceDef[] = [
@@ -115,6 +119,8 @@ export async function tick(force?: string): Promise<{ called: string | null; cha
     return { called: null, changed: false };
   }
   if (!process.env.AQ_TOKEN || secondsUntilNextCall() > 0) return { called: null, changed: false };
+  // A write (write_note) is waiting for the next slot: let it have it.
+  if (!force && store.writeReservedUntil && Date.now() < store.writeReservedUntil) return { called: null, changed: false };
   const now = Date.now();
   const defs = sources();
   const pick = force ? defs.find((d) => d.key === force) : defs.map((d) => ({ d, s: dueScore(d, now) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s)[0]?.d;
@@ -138,6 +144,12 @@ export async function tick(force?: string): Promise<{ called: string | null; cha
         store.log[0].note = meta.hash ? "changed" : h === hashOf(snapJson) ? "same as snapshot" : "newer than snapshot";
       } else store.log[0].note = "no change";
       meta.hash = h;
+      if (changed) {
+        const prev = pick.key in store.data ? store.data[pick.key] : readSnapshot(pick.snapshot);
+        const lines = diffLines(pick.key, prev, data);
+        store.changes.unshift({ at: new Date().toISOString(), source: pick.label, tool: pick.tool, lines: lines.length ? lines : ["Content changed (no headline difference)."] });
+        store.changes.length = Math.min(store.changes.length, 60);
+      }
       store.data[pick.key] = data;
       if (pick.key === "accounts") {
         const ids = ((data as { accounts?: { id: string }[] }).accounts ?? []).map((a) => a.id).filter((id) => id !== "A" && id !== "B" && /^[A-Z]$/.test(id));
@@ -159,7 +171,13 @@ export function getSource<T>(key: string, snapshot: string): { data: T | null; s
   return { data: snap, source: snap ? "snapshot" : "none", fetchedAt: null };
 }
 
+/** Hold the next free slot for a waiting write_note. */
+export function reserveForWrite(sec: number) {
+  store.writeReservedUntil = Date.now() + sec * 1000;
+}
+
 export function noteWritten() {
+  store.writeReservedUntil = 0;
   const m = store.meta["notes"];
   if (m) m.fetchedAt = 0; // make notes the most overdue source
 }
@@ -189,6 +207,57 @@ export function syncStatus() {
     now: new Date(now).toISOString(),
     sources: states,
     log: store.log,
+    changes: store.changes,
   };
 }
 export type SyncStatus = ReturnType<typeof syncStatus>;
+
+/* ---------- what changed between two answers of the same tool, in plain words ---------- */
+type Acc = { id: string; name: string; stakeholders?: { id: string; name: string; relationship: string }[]; facts?: { id: string; status: string }[]; opportunities?: { id: string; title: string; stage: string; worth_up_to: number | null }[]; offers?: { id: string; status: string }[] };
+function diffLines(key: string, prev: unknown, next: unknown): string[] {
+  const out: string[] = [];
+  try {
+    if (key === "signals") {
+      const before = ((prev as { signals?: { id: string; title: string }[] })?.signals ?? []);
+      const after = ((next as { signals?: { id: string; title: string; dated: string }[] })?.signals ?? []);
+      const was = new Set(before.map((x) => x.id));
+      const now = new Set(after.map((x) => x.id));
+      if (before.length !== after.length) out.push(`Live events reported: ${before.length} → ${after.length}`);
+      for (const sg of after) if (!was.has(sg.id)) out.push(`New live event ${sg.id} (${sg.dated}): ${sg.title}`);
+      for (const sg of before) if (!now.has(sg.id)) out.push(`No longer reported: ${sg.id} (${sg.title})`);
+    } else if (key === "accounts") {
+      const pa = ((prev as { accounts?: Acc[] })?.accounts ?? []);
+      for (const a of (next as { accounts?: Acc[] })?.accounts ?? []) {
+        const b = pa.find((x) => x.id === a.id);
+        if (!b) { out.push(`New account ${a.id}: ${a.name}`); continue; }
+        for (const o of a.opportunities ?? []) {
+          const ob = (b.opportunities ?? []).find((x) => x.id === o.id);
+          if (!ob) out.push(`${a.id}: new deal ${o.id} (${o.title}), stage ${o.stage}`);
+          else if (ob.stage !== o.stage) out.push(`${a.id}: deal ${o.id} moved ${ob.stage} → ${o.stage}`);
+          else if (ob.worth_up_to !== o.worth_up_to) out.push(`${a.id}: deal ${o.id} worth ${ob.worth_up_to ?? "n/a"} → ${o.worth_up_to ?? "n/a"}`);
+        }
+        for (const p of a.stakeholders ?? []) {
+          const pb = (b.stakeholders ?? []).find((x) => x.id === p.id);
+          if (!pb) out.push(`${a.id}: new person ${p.name} (${p.relationship})`);
+          else if (pb.relationship !== p.relationship) out.push(`${a.id}: ${p.name} ${pb.relationship} → ${p.relationship}`);
+        }
+        const nf = (a.facts ?? []).length - (b.facts ?? []).length;
+        if (nf) out.push(`${a.id}: ${nf > 0 ? "+" : ""}${nf} facts`);
+        for (const f of a.facts ?? []) { const fb = (b.facts ?? []).find((x) => x.id === f.id); if (fb && fb.status !== f.status) out.push(`${a.id}: fact ${f.id} ${fb.status} → ${f.status}`); }
+        for (const o of a.offers ?? []) { const ob = (b.offers ?? []).find((x) => x.id === o.id); if (!ob) out.push(`${a.id}: new offer ${o.id} (${o.status})`); else if (ob.status !== o.status) out.push(`${a.id}: offer ${o.id} ${ob.status} → ${o.status}`); }
+      }
+    } else if (key === "notes") {
+      const n0 = ((prev as { notes?: unknown[] })?.notes ?? []).length, n1 = ((next as { notes?: unknown[] })?.notes ?? []).length;
+      if (n1 !== n0) out.push(`Notes in the game: ${n0} → ${n1}`);
+    } else if (key.startsWith("pack_")) {
+      const r0 = ((prev as { records?: { path: string; text?: string }[] })?.records ?? []);
+      const r1 = ((next as { records?: { path: string; text?: string }[] })?.records ?? []);
+      const p0 = new Map(r0.map((r) => [r.path, (r.text ?? "").length]));
+      for (const r of r1) {
+        if (!p0.has(r.path)) out.push(`New record ${r.path}`);
+        else if ((r.text ?? "").length !== p0.get(r.path)) out.push(`Record updated: ${r.path}`);
+      }
+    }
+  } catch {}
+  return out.slice(0, 12);
+}
