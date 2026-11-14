@@ -189,7 +189,8 @@ function Shell({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing
           {view === "risks" && <RiskRadar crm={crm} go={go} />}
           {view === "log" && <ChangeLog crm={crm} sync={sync} />}
           {view === "brief" && <Brief crm={crm} />}
-          {view === "copilot" && <Copilot crm={crm} />}
+          {/* Kept mounted so an answer keeps streaming while you look at other pages. */}
+          <div hidden={view !== "copilot"}><Copilot crm={crm} /></div>
           {current && <Account key={current.id} acc={current} crm={crm} />}
           {!["P", "queue", "risks", "log", "brief", "copilot"].includes(view) && !current && <Portfolio crm={crm} go={go} newSignalIds={newSignalIds} />}
         </main>

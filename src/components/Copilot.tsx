@@ -23,11 +23,25 @@ export function Copilot({ crm, focus }: { crm: CrmView; focus?: string }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try { const raw = localStorage.getItem(KEY); if (raw) setTurns(JSON.parse(raw)); } catch {}
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        // Drop answers that were cut off (e.g. the page was closed mid-answer): never show an endless spinner.
+        const saved = (JSON.parse(raw) as Turn[]).filter((t) => !(t.role === "assistant" && !t.content.trim()));
+        setTurns(saved);
+      }
+    } catch {}
   }, []);
+  useEffect(() => {
+    if (!busy) return;
+    const h = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(h);
+  }, [busy]);
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify(turns.slice(-20))); } catch {}
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -39,8 +53,11 @@ export function Copilot({ crm, focus }: { crm: CrmView; focus?: string }) {
     setTurns([...history, { role: "user", content: question }, { role: "assistant", content: "" }]);
     setQ("");
     setBusy(true);
+    setStartedAt(Date.now());
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 90_000);
     try {
-      const r = await fetch("/api/copilot", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, history, account: focus }) });
+      const r = await fetch("/api/copilot", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, history, account: focus }), signal: ctl.signal });
       if (!r.ok || !r.body) {
         const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
         setTurns((t) => [...t.slice(0, -1), { role: "assistant", content: `[Copilot unavailable: ${j.error}]` }]);
@@ -55,10 +72,14 @@ export function Copilot({ crm, focus }: { crm: CrmView; focus?: string }) {
         acc += dec.decode(value, { stream: true });
         setTurns((t) => [...t.slice(0, -1), { role: "assistant", content: acc }]);
       }
+      if (!acc.trim()) setTurns((t) => [...t.slice(0, -1), { role: "assistant", content: "[Copilot unavailable: the answer came back empty. Try again.]" }]);
     } catch (e) {
-      setTurns((t) => [...t.slice(0, -1), { role: "assistant", content: `[Copilot unavailable: ${String(e)}]` }]);
+      const msg = ctl.signal.aborted ? "no answer after 90 seconds. Try again or ask a shorter question." : String(e);
+      setTurns((t) => [...t.slice(0, -1), { role: "assistant", content: `[Copilot unavailable: ${msg}]` }]);
     } finally {
+      clearTimeout(timer);
       setBusy(false);
+      setStartedAt(null);
     }
   };
 
@@ -85,7 +106,7 @@ export function Copilot({ crm, focus }: { crm: CrmView; focus?: string }) {
             <div key={i} className={clsx("flex gap-3", t.role === "user" && "justify-end")}>
               {t.role === "assistant" && <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center bg-accent text-black"><Bot size={15} /></div>}
               <div className={clsx("max-w-[85%] text-sm leading-relaxed", t.role === "user" ? "border border-line bg-panel-2 px-3 py-2" : "")}>
-                {t.role === "user" ? t.content : t.content ? <Answer text={t.content} crm={crm} /> : <span className="flex items-center gap-2 text-muted"><Loader2 size={14} className="animate-spin" />Reading the accounts…</span>}
+                {t.role === "user" ? t.content : t.content ? <Answer text={t.content} crm={crm} /> : <span className="flex items-center gap-2 text-muted"><Loader2 size={14} className="animate-spin" />{busy ? `Claude is reading the accounts and thinking… ${startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0}s` : "Interrupted. Ask again."}<span className="hidden">{tick}</span></span>}
               </div>
             </div>
           ))}
