@@ -114,7 +114,6 @@ function buildAccount(a: RawAccount, pack: RawPack, signals: RawSignal[], fleet:
     const hannah = person("hannah_doyle"), karen = person("karen_mbeki"), rhys = person("rhys_calder");
     const rhysLeaving = !!sig("champion_leaves");
     const tarnNorwoldDocks = 8; // 4 + 4, from the flight log file rows
-    const westmereDocks = 18;
     deals.push({
       id: "a_renewal", title: "Renew the alliance contract (35 docks)", stage: opp("a_renewal")?.stage ?? "on file", kind: "renewal",
       value: renewal,

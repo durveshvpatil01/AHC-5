@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "dev:claude": "set NEXT_DIST_DIR=.next-claude&& next dev -p 3101"
+    "dev:claude": "set NEXT_DIST_DIR=.next-claude&& set PERSIST_SNAPSHOT=1&& next dev -p 3101",
+    "test": "vitest run",
+    "check:copilot": "node scripts/copilot-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
@@ -27,6 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.29",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

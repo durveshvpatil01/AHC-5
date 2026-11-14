@@ -13,7 +13,7 @@ It also has a **fleet health** view per dock, computed from weekly usage, flight
 
 ## It stays live: the portal's own MCP connection
 - `src/lib/sync.ts` is the portal's MCP client: JSON-RPC `tools/call` to `https://questathon.aihackerscollective.com/api/public/mcp`, with the token held only on the server.
-- A scheduler makes **at most one call a minute** (the token's limit), always to the most overdue source: `get_signals` every minute, `get_my_accounts` and `list_notes` every 5 min, and `get_all_paperwork` per account every hour. A new account in `get_my_accounts` gets its paperwork pulled automatically.
+- A scheduler makes **at most one call a minute** (the token's limit), always to the most overdue source: `get_signals` every minute, `get_my_accounts` and `list_notes` every 5 min, and `get_all_paperwork` per account every 15 min. A new account in `get_my_accounts` gets its paperwork pulled automatically.
 - Live events are **merged into the paperwork**: new usage rows change the fleet, a new ticket becomes a risk and a move, and an event of an unknown type still gets a red/amber risk, an owned and dated move, and a before → after "what changed".
 - The browser polls `/api/crm` every 20 s and swaps in new data in place (no reload). The **MCP live** pill opens the connection panel: sources, last pull, next pull, call log, and **Sync now**.
 - Write-back: **Save to game** on a move, or the Notes tab → `write_note` through the same connection.
@@ -42,6 +42,7 @@ npm install
 cp .env.example .env.local   # put AQ_TOKEN (and COPILOT_ANTHROPIC_KEY for the AI Copilot) in it; never commit it
 node scripts/snapshot-rest.mjs   # optional: refresh the snapshot (one call a minute)
 npm run dev
+npm test                     # rules engine + live-merge tests (tests/engine.test.ts, frozen fixtures)
 ```
 Deploy: import the repo in Vercel and set the `AQ_TOKEN` environment variable. The token only ever lives on the server.
 

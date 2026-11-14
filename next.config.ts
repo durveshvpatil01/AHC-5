@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     "/api/crm": ["./data/snapshot/**/*"],
     "/api/sync": ["./data/snapshot/**/*"],
     "/api/notes": ["./data/snapshot/**/*"],
+    "/api/copilot": ["./data/snapshot/**/*"],
   },
 };
 

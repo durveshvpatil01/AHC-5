@@ -3,6 +3,8 @@
 // A scheduler picks the most overdue source on each tick; results live in memory, and the committed
 // snapshot is used only until the first live answer for a source arrives.
 import "server-only";
+import fs from "node:fs";
+import path from "node:path";
 import { readSnapshot } from "./aq";
 
 export const MCP_URL = "https://questathon.aihackerscollective.com/api/public/mcp";
@@ -35,10 +37,10 @@ export function sources(): SourceDef[] {
     { key: "signals", tool: "get_signals", args: {}, everySec: 60, snapshot: "signals.json", label: "Live events" },
     { key: "accounts", tool: "get_my_accounts", args: {}, everySec: 300, snapshot: "export.json", label: "Accounts, people, facts, deals" },
     { key: "notes", tool: "list_notes", args: {}, everySec: 300, snapshot: "notes.json", label: "Notes written back" },
-    { key: "pack_A", tool: "get_all_paperwork", args: { account: "A" }, everySec: 3600, snapshot: "pack_A.json", label: "Paperwork, account A" },
-    { key: "pack_B", tool: "get_all_paperwork", args: { account: "B" }, everySec: 3600, snapshot: "pack_B.json", label: "Paperwork, account B" },
+    { key: "pack_A", tool: "get_all_paperwork", args: { account: "A" }, everySec: 900, snapshot: "pack_A.json", label: "Paperwork, account A" },
+    { key: "pack_B", tool: "get_all_paperwork", args: { account: "B" }, everySec: 900, snapshot: "pack_B.json", label: "Paperwork, account B" },
   ];
-  for (const id of store.extraPacks) base.push({ key: `pack_${id}`, tool: "get_all_paperwork", args: { account: id }, everySec: 3600, snapshot: `pack_${id}.json`, label: `Paperwork, account ${id}` });
+  for (const id of store.extraPacks) base.push({ key: `pack_${id}`, tool: "get_all_paperwork", args: { account: id }, everySec: 900, snapshot: `pack_${id}.json`, label: `Paperwork, account ${id}` });
   return base;
 }
 
@@ -151,6 +153,7 @@ export async function tick(force?: string): Promise<{ called: string | null; cha
         store.changes.length = Math.min(store.changes.length, 60);
       }
       store.data[pick.key] = data;
+      persistSnapshot(pick.snapshot, data);
       if (pick.key === "accounts") {
         const ids = ((data as { accounts?: { id: string }[] }).accounts ?? []).map((a) => a.id).filter((id) => id !== "A" && id !== "B" && /^[A-Z]$/.test(id));
         for (const id of ids) if (!store.extraPacks.includes(id)) store.extraPacks.push(id);
@@ -260,4 +263,13 @@ function diffLines(key: string, prev: unknown, next: unknown): string[] {
     }
   } catch {}
   return out.slice(0, 12);
+}
+
+/** Local dev only (PERSIST_SNAPSHOT=1): write each live answer back to data/snapshot, so the committed
+ * cold-start fallback is as fresh as the last pull. On Vercel the file system is read-only, so this is off. */
+function persistSnapshot(file: string, data: unknown) {
+  if (process.env.PERSIST_SNAPSHOT !== "1") return;
+  try {
+    fs.writeFileSync(path.join(process.cwd(), "data", "snapshot", file), JSON.stringify(data, null, 1));
+  } catch {}
 }
