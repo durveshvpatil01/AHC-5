@@ -8,7 +8,7 @@ export interface RawFact { id: string; text: string; said_by: string; status: "c
 export interface RawStakeholder { id: string; name: string; role: string; relationship: Stance; available?: boolean }
 export interface RawOpp { id: string; title: string; stage: string; worth_up_to: number | null; size: number | null; blocker: string | null; evidence: string[]; deadline: { text: string; soon?: boolean; passed?: boolean; met?: boolean; moves_left?: number | null } | null }
 export interface RawOffer { id: string; title: string; value: number; pitch_to: string; status: string }
-export interface RawAccount { id: "A" | "B"; name: string; official_story: string; stakeholders: RawStakeholder[]; facts: RawFact[]; opportunities: RawOpp[]; offers: RawOffer[]; deadlines: { text: string; passed: boolean }[] }
+export interface RawAccount { id: string; name: string; official_story: string; stakeholders: RawStakeholder[]; facts: RawFact[]; opportunities: RawOpp[]; offers: RawOffer[]; deadlines: { text: string; passed: boolean }[] }
 export interface RawExport { exported_at: string; accounts: RawAccount[]; files: { id: string; title: string; path: string; account: string }[] }
 export interface RawRecord { path: string; kind: string; text?: string; data?: unknown; fromSignal?: string }
 export interface RawPack { account: string; records: RawRecord[] }
@@ -102,7 +102,17 @@ interface Profile {
   not_on_file: string[];
   renewal: { term_ends: string; annual_value: number };
 }
-export const profileOf = (pack: RawPack) => recData<Profile>(pack, "profile.json")!;
+export const EMPTY_PROFILE: Profile = {
+  currency: "USD",
+  sector: "Account (new)",
+  what_they_bought: "",
+  flytbase_side: { commercial_owner: "" },
+  contacts_on_file: [],
+  not_on_file: ["A contract on file: renewal date, value and who signed it.", "Usage data for this account's docks."],
+  renewal: { term_ends: "", annual_value: 0 },
+};
+export const profileOf = (pack: RawPack): Profile => recData<Profile>(pack, "profile.json") ?? EMPTY_PROFILE;
+export const hasProfile = (pack: RawPack) => !!recData(pack, "profile.json");
 
 export function peopleOf(acc: RawAccount, pack: RawPack): Person[] {
   const prof = profileOf(pack);

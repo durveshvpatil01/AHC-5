@@ -1,62 +1,41 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { Radio, RefreshCw } from "lucide-react";
+import { PlugZap, RefreshCw, Loader2 } from "lucide-react";
 import type { CrmView } from "@/lib/types";
+import type { SyncStatus } from "@/lib/sync";
 import { CiteProvider, fmtDate } from "./ui";
 import { Portfolio } from "./Portfolio";
 import { Account } from "./Account";
+import { McpPanel, useNow } from "./McpPanel";
 
-type Tab = "P" | "A" | "B";
+type Tab = string; // "P" = portfolio, otherwise an account id
 
-export function Desk({ crm }: { crm: CrmView }) {
+export function Desk({ crm, sync, toast, onDismissToast, newSignalIds, onSync, syncing, syncMsg, lastPoll, pollEverySec }: {
+  crm: CrmView; sync: SyncStatus; toast: string | null; onDismissToast: () => void; newSignalIds: Set<string>;
+  onSync: () => void; syncing: boolean; syncMsg: string | null; lastPoll: string | null; pollEverySec: number;
+}) {
   const [tab, setTab] = useState<Tab>("P");
-  const router = useRouter();
-  const [lastPoll, setLastPoll] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const [newSignalIds, setNewSignalIds] = useState<Set<string>>(() => new Set());
-  const finger = useRef<string | null>(null);
-  const known = useRef<Set<string>>(new Set(crm.accounts.flatMap((a) => a.signals.map((s) => s.id))));
+  const [panel, setPanel] = useState(false);
+  const now = useNow();
 
   useEffect(() => {
     try {
       const t = localStorage.getItem("desk-tab") as Tab | null;
-      if (t === "A" || t === "B" || t === "P") setTab(t);
+      if (t && (t === "P" || crm.accounts.some((a) => a.id === t))) setTab(t);
     } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     try { localStorage.setItem("desk-tab", tab); } catch {}
   }, [tab]);
 
-  // Live: poll the server fingerprint every 30 s; re-render the page when the data changed.
-  useEffect(() => {
-    let stop = false;
-    const tick = async () => {
-      try {
-        const r = await fetch("/api/live", { cache: "no-store" });
-        const j = await r.json();
-        setLastPoll(new Date().toISOString());
-        if (finger.current && j.fingerprint !== finger.current) {
-          const fresh = (j.signals as { id: string; title: string }[]).filter((s) => !known.current.has(s.id));
-          fresh.forEach((s) => known.current.add(s.id));
-          if (fresh.length) {
-            setNewSignalIds((prev) => new Set([...prev, ...fresh.map((s) => s.id)]));
-          }
-          setToast(fresh.length ? `New live event: ${fresh.map((s) => s.title).join(" · ")}` : "Account data updated");
-          router.refresh();
-        }
-        finger.current = j.fingerprint;
-      } catch {}
-    };
-    tick();
-    const h = setInterval(() => !stop && tick(), 30_000);
-    return () => { stop = true; clearInterval(h); };
-  }, [router]);
-
-  const A = crm.accounts.find((a) => a.id === "A")!;
-  const B = crm.accounts.find((a) => a.id === "B")!;
-  const live = crm.sync.signals?.source === "live";
+  const current = crm.accounts.find((a) => a.id === tab);
+  const shortName = (n: string) => n.replace(/(Industrial Group|Police Alliance|Group|Ltd|Inc)/g, "").trim();
+  const liveSources = sync.sources.filter((x) => x.source === "live").length;
+  const live = liveSources > 0;
+  const lastCall = sync.log[0];
+  const lastCallAgo = lastCall ? Math.max(0, Math.round((now - new Date(lastCall.at).getTime()) / 1000)) : null;
 
   return (
     <CiteProvider sources={crm.sources}>
@@ -71,7 +50,7 @@ export function Desk({ crm }: { crm: CrmView }) {
               </div>
             </div>
             <nav aria-label="Account switcher" className="flex flex-wrap items-center gap-1">
-              {([["P", "Portfolio", null], ["A", "Eastern Counties", A.kpis.health.score], ["B", "Aldermoor", B.kpis.health.score]] as const).map(([k, label, h]) => (
+              {([["P", "Portfolio", null] as [string, string, number | null], ...crm.accounts.map((a) => [a.id, shortName(a.name), a.kpis.health.score] as [string, string, number | null])]).map(([k, label, h]) => (
                 <button
                   key={k}
                   onClick={() => setTab(k)}
@@ -96,28 +75,33 @@ export function Desk({ crm }: { crm: CrmView }) {
                 <span className="label !text-[9.5px]">Account date</span>
                 <span className="mono rounded-sm border border-line bg-panel px-1.5 py-0.5 text-[11px] text-text">{fmtDate(crm.asOf)}</span>
               </span>
-              <span
+              <button
+                onClick={() => setPanel(true)}
+                title="Open the MCP connection panel"
                 className={clsx(
-                  "flex items-center gap-1.5 border px-2.5 py-1 transition",
+                  "flex items-center gap-1.5 border px-2.5 py-1 transition hover:border-accent",
                   live ? "border-green/35 bg-[var(--green-soft)]/50" : "border-amber/35 bg-[var(--amber-soft)]/40"
                 )}
-                title={`signals: ${crm.sync.signals?.source} @ ${crm.sync.signals?.at}\nexport: ${crm.sync.export?.source} @ ${crm.sync.export?.at}\nnotes: ${crm.sync.notes?.source} @ ${crm.sync.notes?.at}`}
               >
-                <Radio size={12} className={clsx(live ? "live-dot text-green" : "text-amber")} />
+                <PlugZap size={12} className={clsx(live ? "live-dot text-green" : "text-amber")} />
                 <span className={clsx("mono text-[11px] font-medium uppercase tracking-wider", live ? "text-green" : "text-amber")}>
-                  {live ? "Live" : "Snapshot"}
+                  {live ? "MCP live" : "MCP connecting"}
                 </span>
                 <span className="mono text-[11px] text-muted">· {crm.sync.signals?.count ?? 0} events</span>
-                {lastPoll && (
-                  <span className="mono hidden text-[11px] text-dim md:inline">
-                    · checked {new Date(lastPoll).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                )}
-              </span>
+                <span className="mono hidden text-[11px] text-dim md:inline">
+                  · {lastCall ? `${lastCall.tool} ${lastCallAgo}s ago` : lastPoll ? "waiting for first call" : "…"}
+                </span>
+              </button>
+              <button onClick={onSync} disabled={syncing} title="Ask the MCP for new live events now" className="mono flex items-center gap-1 border border-line px-2 py-1 text-[10.5px] uppercase tracking-wider text-muted hover:border-accent hover:text-accent disabled:opacity-50">
+                {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Sync
+              </button>
             </div>
           </div>
         </header>
 
+        {syncMsg && !panel && (
+          <div className="mx-auto w-full max-w-[1400px] px-4 pt-2 text-xs text-muted md:px-6">{syncMsg}</div>
+        )}
         {toast && (
           <div className="mx-auto w-full max-w-[1400px] px-4 pt-3 md:px-6">
             <div role="status" className="flash-new flex items-center justify-between gap-3 border border-accent/60 bg-[var(--accent-soft)] px-4 py-2.5 text-sm">
@@ -125,7 +109,7 @@ export function Desk({ crm }: { crm: CrmView }) {
                 <RefreshCw size={14} className="shrink-0 text-accent" />
                 <span>{toast}</span>
               </span>
-              <button className="mono shrink-0 border border-line bg-bg/60 px-2 py-0.5 text-[10.5px] uppercase tracking-wider text-muted transition hover:border-accent hover:text-text" onClick={() => setToast(null)}>
+              <button className="mono shrink-0 border border-line bg-bg/60 px-2 py-0.5 text-[10.5px] uppercase tracking-wider text-muted transition hover:border-accent hover:text-text" onClick={onDismissToast}>
                 dismiss
               </button>
             </div>
@@ -134,13 +118,14 @@ export function Desk({ crm }: { crm: CrmView }) {
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-5 md:px-6">
           {tab === "P" && <Portfolio crm={crm} go={(k) => setTab(k)} newSignalIds={newSignalIds} />}
-          {tab === "A" && <Account acc={A} crm={crm} />}
-          {tab === "B" && <Account acc={B} crm={crm} />}
+          {tab !== "P" && current && <Account key={current.id} acc={current} crm={crm} />}
+          {tab !== "P" && !current && <Portfolio crm={crm} go={(k) => setTab(k)} newSignalIds={newSignalIds} />}
         </main>
         <footer className="mx-auto max-w-[1400px] px-6 pb-8 pt-2 text-[11px] text-dim">
           Every number carries the id it comes from: click any <span className="mono text-muted">▤ id</span> chip to open the record. Data: Account Quest MCP (export, paperwork, live events) · built {fmtDate(crm.generatedAt.slice(0, 10))}.
         </footer>
       </div>
+      {panel && <McpPanel sync={sync} onSync={onSync} syncing={syncing} syncMsg={syncMsg} lastPoll={lastPoll} pollEverySec={pollEverySec} onClose={() => setPanel(false)} />}
     </CiteProvider>
   );
 }

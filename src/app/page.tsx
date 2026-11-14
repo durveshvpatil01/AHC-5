@@ -1,10 +1,11 @@
 import { getCrm } from "@/lib/load";
-import { Desk } from "@/components/Desk";
+import { syncStatus } from "@/lib/sync";
+import { LiveDesk } from "@/components/LiveDesk";
 
-// Re-render at most every 30 s; live sources refresh on their own cache timers (see src/lib/aq.ts).
-export const revalidate = 30;
+// Rendered per request; the browser then stays live through /api/crm (the portal's MCP connection).
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const crm = await getCrm();
-  return <Desk crm={crm} />;
+  const { crm, version } = await getCrm({ tick: true });
+  return <LiveDesk initial={{ crm, version, sync: syncStatus() }} />;
 }

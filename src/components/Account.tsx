@@ -75,8 +75,8 @@ export function Account({ acc, crm }: { acc: AccountView; crm: CrmView }) {
             <div className="text-right">
               <div className="label">Renewal</div>
               <div className="mono text-xl">{fmtMoney(k.renewal)}</div>
-              <div className={clsx("text-xs", k.daysToRenewal <= 60 ? "text-amber" : "text-muted")}>
-                {k.daysToRenewal} days · {fmtDate(k.termEnds)}
+              <div className={clsx("text-xs", k.daysToRenewal != null && k.daysToRenewal <= 60 ? "text-amber" : "text-muted")}>
+                {k.daysToRenewal != null ? `${k.daysToRenewal} days · ${fmtDate(k.termEnds)}` : "no contract on file"}
               </div>
               <div className="mt-1"><Cite ids={k.renewal.cite} max={1} /></div>
             </div>

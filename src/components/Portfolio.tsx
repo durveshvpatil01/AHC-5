@@ -6,7 +6,7 @@ import type { CrmView } from "@/lib/types";
 import { Bar, Cite, EmptyState, Panel, Pill, ShowAllToggle, fmtDate, fmtMoney } from "./ui";
 import { MoveRow } from "./Account";
 
-export function Portfolio({ crm, go, newSignalIds }: { crm: CrmView; go: (k: "A" | "B") => void; newSignalIds?: Set<string> }) {
+export function Portfolio({ crm, go, newSignalIds }: { crm: CrmView; go: (k: string) => void; newSignalIds?: Set<string> }) {
   const [showAllMoves, setShowAllMoves] = useState(false);
   const [showAllSignals, setShowAllSignals] = useState(false);
 
@@ -74,8 +74,8 @@ export function Portfolio({ crm, go, newSignalIds }: { crm: CrmView; go: (k: "A"
                 <Stat label="Renewal (backed)" value={fmtMoney(k.renewal)} sub={<Cite ids={k.renewal.cite} max={1} />} />
                 <Stat
                   label="Term ends"
-                  value={`${k.daysToRenewal} days`}
-                  valueCls={k.daysToRenewal <= 60 ? "text-amber" : undefined}
+                  value={k.daysToRenewal != null ? `${k.daysToRenewal} days` : "n/a"}
+                  valueCls={k.daysToRenewal != null && k.daysToRenewal <= 60 ? "text-amber" : undefined}
                   sub={<span className="text-xs text-muted">{fmtDate(k.termEnds)}</span>}
                 />
                 <Stat

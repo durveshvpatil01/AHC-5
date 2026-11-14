@@ -1,6 +1,5 @@
-// Write a note / task / risk / next_step back to the game through the MCP (server side only).
-import { revalidateTag } from "next/cache";
-import { writeNote } from "@/lib/aq";
+// Write a note / task / risk / next_step back to the game through the portal's MCP connection (write_note).
+import { guardedCall, noteWritten, secondsUntilNextCall } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +14,17 @@ export async function POST(req: Request) {
   }
   const text = (body.text ?? "").toString().slice(0, 2000).trim();
   if (!text) return Response.json({ ok: false, error: "Text is required" }, { status: 400 });
-  const account = body.account === "A" || body.account === "B" ? body.account : undefined;
-  const kind = KINDS.has(body.kind ?? "") ? body.kind : "note";
+  const wait = secondsUntilNextCall();
+  if (wait > 0) return Response.json({ ok: false, waitSec: wait, error: `One MCP call a minute: try again in ${wait}s.` }, { status: 429 });
+  const args: Record<string, unknown> = { text, kind: KINDS.has(body.kind ?? "") ? body.kind : "note" };
+  if (body.account && /^[A-Z]$/.test(body.account)) args.account = body.account;
+  if (body.title) args.title = body.title.toString().slice(0, 120);
   try {
-    const result = await writeNote({ account, kind, title: body.title?.toString().slice(0, 120), text });
-    revalidateTag("aq-notes");
+    const result = await guardedCall<unknown>("write_note", args);
+    noteWritten();
     return Response.json({ ok: true, result });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const limited = /429|rate|minute/i.test(msg);
-    return Response.json({ ok: false, error: limited ? "Rate limited (1 call a minute per token). Try again in a minute." : msg }, { status: limited ? 429 : 502 });
+    return Response.json({ ok: false, error: msg }, { status: /rate|minute|429/i.test(msg) ? 429 : 502 });
   }
 }

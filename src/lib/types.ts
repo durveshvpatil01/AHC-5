@@ -126,8 +126,8 @@ export interface Person {
 
 export interface Kpis {
   renewal: Money;
-  termEnds: string;
-  daysToRenewal: number;
+  termEnds: string | null;
+  daysToRenewal: number | null;
   docks: number;
   active: number;
   low: number;
@@ -142,7 +142,7 @@ export interface Kpis {
 }
 
 export interface AccountView {
-  id: "A" | "B";
+  id: string;
   name: string;
   sector: string;
   currency: string;

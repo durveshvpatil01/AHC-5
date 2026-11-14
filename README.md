@@ -11,11 +11,13 @@ For each account it answers five questions, and **every number is cited** with t
 
 It also has a **fleet health** view per dock, computed from weekly usage, flights and device events, and a searchable **timeline** of calls, emails, tickets and live events.
 
-## It stays live
-- `get_signals` is re-read every 60 s, the export every 7 min and the notes every 5 min (Vercel Data Cache), which keeps the token under its **1 call a minute** limit.
-- Live events are not just listed: their records are **merged into the paperwork**. New usage rows change the fleet numbers, and a new ticket becomes a risk and a move. The browser polls `/api/live` every 30 s and re-renders when anything changes, so no reload is needed.
-- Notes go back to the game through `/api/notes` → `write_note`.
-- If the API is rate-limited or down, the page falls back to the committed snapshot in `data/snapshot/`, which was fetched once with `scripts/snapshot-rest.mjs`.
+## It stays live: the portal's own MCP connection
+- `src/lib/sync.ts` is the portal's MCP client: JSON-RPC `tools/call` to `https://questathon.aihackerscollective.com/api/public/mcp`, with the token held only on the server.
+- A scheduler makes **at most one call a minute** (the token's limit), always to the most overdue source: `get_signals` every minute, `get_my_accounts` and `list_notes` every 5 min, and `get_all_paperwork` per account every hour. A new account in `get_my_accounts` gets its paperwork pulled automatically.
+- Live events are **merged into the paperwork**: new usage rows change the fleet, a new ticket becomes a risk and a move, and an event of an unknown type still gets a red/amber risk, an owned and dated move, and a before → after "what changed".
+- The browser polls `/api/crm` every 20 s and swaps in new data in place (no reload). The **MCP live** pill opens the connection panel: sources, last pull, next pull, call log, and **Sync now**.
+- Write-back: **Save to game** on a move, or the Notes tab → `write_note` through the same connection.
+- `data/snapshot/` is only a cold-start fallback until each source's first live pull.
 
 ## How it decides (rules)
 Every rule is pure code in `src/lib/engine.ts`, and each rule's id is shown next to what it produced:
