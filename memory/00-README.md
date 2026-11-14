@@ -4,7 +4,7 @@ Any agent (Claude Code, Antigravity, a fresh chat) starts here. Read in order (N
 
 0. `host-info.md`: everything the host, judges and build screen said (the rubric, the Hindi brief about plans/unlocks/lessons, scoring, the deadline of ~17:00 IST)
 
-1. `01-brief.md`: the task, the judging and the rules (deadline **03:47 IST, 15 Nov**)
+1. `01-brief.md`: the task, the judging and the rules (deadline: hand-in 15:47 IST + 1 h extension → **~17:00 IST, 14 Nov**)
 2. `02-morning-findings.md`: what Durvesh found in the game (the data the CRM shows)
 3. `03-architecture.md`: stack, data flow, the rate-limit plan and hosting
 4. `04-status.md`: **who owns which files**, what's done and what's next. Update it when you finish something.

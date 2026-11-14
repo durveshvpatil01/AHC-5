@@ -2,7 +2,7 @@
 
 **Task:** build a live CRM for the two accounts: the one you would hand your manager on Monday. It reads the data through the MCP, and for each account it answers five questions. Every number traces back to its source.
 
-**Window:** 14:00 to **03:47** (15 Nov, IST). Solo. Any tools, AI included.
+**Window:** 14:00 to **15:47 IST + 1 h extension (~17:00 IST, 14 Nov)**. Solo. Any tools, AI included.
 
 ## Hand in: four links (Hand in tab on /play; links can be changed until time is called)
 1. **Live CRM link**: hosted, works without the laptop, opens in a private window, covers both accounts.
