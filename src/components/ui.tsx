@@ -1,7 +1,7 @@
 "use client";
 import clsx from "clsx";
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { X, FileText } from "lucide-react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { X, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import type { Level, Money, Source, Stance } from "@/lib/types";
 
 /* ---------- citation drawer ---------- */

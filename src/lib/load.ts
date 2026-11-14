@@ -18,7 +18,14 @@ export async function getCrm(): Promise<CrmView> {
     exp: exp.data,
     packs,
     signals,
-    notes: notes.data?.notes ?? [],
+    notes: ((notes.data?.notes ?? []) as (CrmView["notes"][number] & { created_at?: string })[]).map((n) => ({
+      id: String(n.id),
+      account: n.account,
+      kind: n.kind,
+      title: n.title,
+      text: n.text,
+      at: n.created_at ? n.created_at.slice(0, 16).replace("T", " ") : n.at,
+    })),
     team,
     sync: {
       export: { source: exp.source, at: exp.fetchedAt },
