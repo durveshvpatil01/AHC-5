@@ -57,3 +57,8 @@ Deadline: **03:47 IST, 15 Nov 2026**. Target: deployed by 17:00, video and doc d
 - `/api/copilot` (Claude Opus 5.5 via @anthropic-ai/sdk 1.8, streaming, prompt-cached CRM context, fallbacks "default", effort medium). Key: `COPILOT_ANTHROPIC_KEY` in .env.local (a stale system ANTHROPIC_API_KEY exists on this PC, so don't rely on that name). On Vercel, add COPILOT_ANTHROPIC_KEY too.
 - Moves, risks and gaps are registered as sources (citable, open in the drawer).
 - `node scripts/copilot-check.mjs [baseUrl]` asks test questions and verifies citations. The 14 Nov run had 34 citations, 0 unknown, answers in 9-24 s.
+
+## 14 Nov ~17:00: hardening
+- `npm test` (vitest, 11 tests on frozen fixtures in tests/fixtures) + CI (.github/workflows/ci.yml). Production build checked (`NEXT_DIST_DIR=.next-build npx next build`).
+- Paperwork refresh is now 15 min. In dev (`npm run dev:claude`, PERSIST_SNAPSHOT=1) every live pull is written to data/snapshot: commit it before deploying so the cold-start fallback is fresh.
+- npm audit: the only production finding is postcss inside next (build-time only, our own CSS); the fix needs `--force` (Next major change). Leave it.
